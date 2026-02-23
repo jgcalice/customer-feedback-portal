@@ -1,0 +1,304 @@
+// openclaw-config.json5
+// ══════════════════════════════════════════════════════════════════════
+// Tech Team Senior — Multi-Agent Development Configuration
+// 9 agentes: tech-lead (orquestrador), backend, frontend, mobile,
+//            architect, qa, devops, designer, pm
+//
+// Uso: copie para ~/.openclaw/openclaw.json ou referencie via CLI
+// Docs: https://docs.openclaw.ai/gateway/configuration-reference
+// ══════════════════════════════════════════════════════════════════════
+
+{
+  // ─── Defaults Compartilhados ─────────────────────────────────────
+  // Aplicados a todos os agentes que não sobrescrevem explicitamente.
+  agents: {
+    defaults: {
+      model: {
+        primary: "anthropic/claude-sonnet-4-5",
+        fallbacks: ["anthropic/claude-haiku-4-5"],
+      },
+      thinkingDefault: "low",
+      contextTokens: 200000,
+      maxConcurrent: 2,
+    },
+
+    // ─── Roster de Agentes ───────────────────────────────────────
+    list: [
+
+      // ── Tech Lead (Orquestrador / Default) ────────────────────
+      // Gerencia e distribui demandas entre todos os agentes.
+      // Usa opus para máxima capacidade de raciocínio e coordenação.
+      {
+        id: "tech-lead",
+        default: true,
+        workspace: "./agents/tech-lead",
+        agentDir: "./agents/tech-lead/agent",
+        model: {
+          primary: "anthropic/claude-opus-4-6",
+          fallbacks: ["anthropic/claude-sonnet-4-5"],
+        },
+        identity: {
+          name: "Tech Lead",
+          theme: "senior tech coordinator — qualidade, velocidade e visibilidade",
+          emoji: "🎯",
+        },
+        tools: {
+          profile: "coding",
+        },
+        subagents: {
+          allowAgents: [
+            "backend", "frontend", "mobile", "architect",
+            "qa", "devops", "designer", "pm",
+          ],
+        },
+      },
+
+      // ── Backend Developer ─────────────────────────────────────
+      // Sistemas distribuídos, APIs, bancos, eventos, K8s, segurança.
+      {
+        id: "backend",
+        workspace: "./agents/backend",
+        agentDir: "./agents/backend/agent",
+        identity: {
+          name: "Backend Dev",
+          theme: "distributed systems & API engineer",
+          emoji: "⚙️",
+        },
+        tools: {
+          profile: "coding",
+        },
+        subagents: { allowAgents: [] },
+      },
+
+      // ── Frontend Developer ────────────────────────────────────
+      // UI/UX engineering, design systems, acessibilidade, performance.
+      {
+        id: "frontend",
+        workspace: "./agents/frontend",
+        agentDir: "./agents/frontend/agent",
+        identity: {
+          name: "Frontend Dev",
+          theme: "UI/UX engineer — performance, acessibilidade, design systems",
+          emoji: "🖥️",
+        },
+        tools: {
+          profile: "coding",
+        },
+        subagents: { allowAgents: [] },
+      },
+
+      // ── Mobile Developer ──────────────────────────────────────
+      // Cross-platform, native, performance mobile.
+      {
+        id: "mobile",
+        workspace: "./agents/mobile",
+        agentDir: "./agents/mobile/agent",
+        identity: {
+          name: "Mobile Dev",
+          theme: "cross-platform mobile engineer",
+          emoji: "📱",
+        },
+        tools: {
+          profile: "coding",
+        },
+        subagents: { allowAgents: [] },
+      },
+
+      // ── Solutions Architect ───────────────────────────────────
+      // Arquitetura, trade-offs, ADRs, escalabilidade, FinOps.
+      {
+        id: "architect",
+        workspace: "./agents/architect",
+        agentDir: "./agents/architect/agent",
+        identity: {
+          name: "Architect",
+          theme: "solutions architect — trade-offs, escalabilidade, design de sistemas",
+          emoji: "🏗️",
+        },
+        tools: {
+          profile: "coding",
+        },
+        subagents: { allowAgents: [] },
+      },
+
+      // ── QA Engineer ───────────────────────────────────────────
+      // Testing trophy, automação, performance, acessibilidade, contratos.
+      {
+        id: "qa",
+        workspace: "./agents/qa",
+        agentDir: "./agents/qa/agent",
+        identity: {
+          name: "QA Engineer",
+          theme: "quality assurance — test automation, risk-based testing",
+          emoji: "🧪",
+        },
+        tools: {
+          profile: "coding",
+        },
+        subagents: { allowAgents: [] },
+      },
+
+      // ── DevOps Engineer ───────────────────────────────────────
+      // CI/CD, IaC, observabilidade, SRE, plataforma interna.
+      {
+        id: "devops",
+        workspace: "./agents/devops",
+        agentDir: "./agents/devops/agent",
+        identity: {
+          name: "DevOps",
+          theme: "infrastructure & delivery pipeline engineer",
+          emoji: "🚀",
+        },
+        tools: {
+          profile: "coding",
+        },
+        subagents: { allowAgents: [] },
+      },
+
+      // ── Designer ──────────────────────────────────────────────
+      // Product design, interaction design, information architecture.
+      // Perfil minimal: trabalha com documentos e imagens, não executa código.
+      {
+        id: "designer",
+        workspace: "./agents/designer",
+        agentDir: "./agents/designer/agent",
+        identity: {
+          name: "Designer",
+          theme: "senior product designer — user-centric, behavior-driven",
+          emoji: "🎨",
+        },
+        tools: {
+          profile: "minimal",
+          allow: ["read", "write", "edit"],
+        },
+        subagents: { allowAgents: [] },
+      },
+
+      // ── Product Manager ───────────────────────────────────────
+      // Outcomes-first, discovery + delivery, PRDs, priorização.
+      // Perfil minimal: trabalha com documentos, não executa código.
+      {
+        id: "pm",
+        workspace: "./agents/pm",
+        agentDir: "./agents/pm/agent",
+        identity: {
+          name: "Product Manager",
+          theme: "outcomes-first product strategist — discovery, delivery, decisão",
+          emoji: "📊",
+        },
+        tools: {
+          profile: "minimal",
+          allow: ["read", "write", "edit"],
+        },
+        subagents: { allowAgents: [] },
+      },
+    ],
+  },
+
+  // ─── Comunicação Inter-Agentes ───────────────────────────────────
+  // Habilita troca de mensagens entre agentes. O tech-lead orquestra;
+  // os demais se comunicam conforme protocolos definidos em AGENTS.md.
+  //
+  // Grafo de comunicação (least-privilege):
+  //   tech-lead ↔ todos (orquestrador)
+  //   backend   ↔ frontend, architect, qa, devops
+  //   frontend  ↔ backend, designer, qa
+  //   mobile    ↔ backend, designer, qa
+  //   architect ↔ backend, frontend, mobile, devops, pm
+  //   qa        ↔ backend, frontend, mobile, pm
+  //   devops    ↔ backend, architect
+  //   designer  ↔ frontend, mobile, pm
+  //   pm        ↔ designer, architect, qa
+  tools: {
+    agentToAgent: {
+      enabled: true,
+      allow: [
+        "tech-lead", "backend", "frontend", "mobile",
+        "architect", "qa", "devops", "designer", "pm",
+      ],
+    },
+    loopDetection: {
+      enabled: true,
+      historySize: 30,
+      warningThreshold: 10,
+      criticalThreshold: 20,
+    },
+  },
+
+  // ─── Sessões ─────────────────────────────────────────────────────
+  session: {
+    reset: {
+      mode: "idle",
+      idleMinutes: 240, // reset após 4h de inatividade
+    },
+
+    // Diretório de tarefas por agente. Cada agente cria/gerencia
+    // tasks/todo.md (plano e progresso) e tasks/lessons.md (padrões
+    // aprendidos com correções do usuário) no seu workspace.
+    taskTracking: {
+      enabled: true,
+      dir: "tasks",           // relativo ao workspace do agente
+      files: {
+        todo: "todo.md",      // plano e progresso da sessão
+        lessons: "lessons.md", // padrões aprendidos com correções
+      },
+      createOnFirstUse: true, // agente cria o diretório se não existir
+    },
+
+    // Instruções de início de sessão para todos os agentes.
+    // Complementa o "Toda Sessão" de cada AGENTS.md.
+    onStart: {
+      readFiles: [
+        "tasks/lessons.md", // self-improvement loop
+      ],
+    },
+  },
+
+  // ─── Bindings (futuro — integração com canais de mensagem) ──────
+  // Descomente e customize quando conectar a plataformas externas.
+  // O tech-lead é o agente default; os demais são acessados via
+  // agent-to-agent ou invocação direta por CLI.
+  //
+  // Exemplos:
+  //
+  // bindings: [
+  //   // Todas as mensagens WhatsApp vão para o tech-lead
+  //   {
+  //     agentId: "tech-lead",
+  //     match: { channel: "whatsapp", accountId: "*" },
+  //   },
+  //
+  //   // Canal #product no Slack vai direto para o PM
+  //   {
+  //     agentId: "pm",
+  //     match: {
+  //       channel: "slack",
+  //       peer: { kind: "channel", id: "#product" },
+  //     },
+  //   },
+  //
+  //   // Canal #engineering no Slack vai para o tech-lead
+  //   {
+  //     agentId: "tech-lead",
+  //     match: {
+  //       channel: "slack",
+  //       peer: { kind: "channel", id: "#engineering" },
+  //     },
+  //   },
+  //
+  //   // Canal #design no Slack vai para o designer
+  //   {
+  //     agentId: "designer",
+  //     match: {
+  //       channel: "slack",
+  //       peer: { kind: "channel", id: "#design" },
+  //     },
+  //   },
+  //
+  //   // DM direto no Discord vai para o tech-lead (fallback)
+  //   {
+  //     agentId: "tech-lead",
+  //     match: { channel: "discord" },
+  //   },
+  // ],
+}
