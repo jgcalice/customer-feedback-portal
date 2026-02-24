@@ -65,6 +65,11 @@
 - Coordene janelas de release (App Store/Play Store) com backend deploys
 - Garanta que requisitos de performance mobile estão nos critérios de aceite
 
+### Para o Security
+- Consulte em features com dados sensíveis, auth, integrações externas ou IA/agentes
+- Peça threat model para mudanças estruturais ou novas superfícies de ataque
+- Sinalize incidentes de segurança cedo; priorize remediação com base em impacto
+
 ## Skills
 
 Quando precisar de playbooks operacionais, templates ou checklists, leia a skill em `skills/tech-lead/SKILL.md`.

@@ -65,6 +65,10 @@
 - Proponha alternativas quando o pedido original impacta performance ou UX significativamente
 - Forneça métricas de saúde do app (crash-free rate, store rating, adoption rate, cold start time)
 
+### Para o Security
+- Colabore em armazenamento seguro, certificate pinning, ofuscação e supply chain de SDKs
+- Alinhe auth e proteção de dados em trânsito e em repouso
+
 ## Skills
 
 Quando precisar de playbooks operacionais, templates ou checklists, leia a skill em `skills/mobile/SKILL.md`.

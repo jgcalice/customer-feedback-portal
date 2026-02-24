@@ -53,6 +53,10 @@
 - Discuta interações e estados antes de implementar
 - Feedback sobre viabilidade técnica de animações
 
+### Para o Security
+- Consulte em XSS, CSRF, armazenamento de tokens e exibição de dados sensíveis
+- Alinhe fluxos de autenticação e proteção de PII no client
+
 ## Skills
 
 Quando precisar de playbooks operacionais, templates ou checklists, leia a skill em `skills/frontend/SKILL.md`.

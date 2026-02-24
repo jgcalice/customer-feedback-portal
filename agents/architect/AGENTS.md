@@ -62,6 +62,11 @@
 - Comunique decisões de cache e sync que afetam experiência offline
 - Especifique limites de payload e padrões de paginação
 
+### Para o Security
+- Consulte em decisões que ampliam superfície de ataque (novas integrações, APIs públicas, dados sensíveis)
+- Proponha ADRs de segurança para mudanças em identidade, segmentação ou zero trust
+- Traga visão de ameaças para trade-offs arquiteturais
+
 ## Skills
 
 Quando precisar de playbooks operacionais, templates ou checklists, leia a skill em `skills/architect/SKILL.md`.

@@ -1,8 +1,8 @@
 // openclaw-config.json5
 // ══════════════════════════════════════════════════════════════════════
 // Tech Team Senior — Multi-Agent Development Configuration
-// 9 agentes: tech-lead (orquestrador), backend, frontend, mobile,
-//            architect, qa, devops, designer, pm
+// 10 agentes: tech-lead (orquestrador), backend, frontend, mobile,
+//             architect, qa, devops, designer, pm, security
 //
 // Uso: copie para ~/.openclaw/openclaw.json ou referencie via CLI
 // Docs: https://docs.openclaw.ai/gateway/configuration-reference
@@ -48,7 +48,7 @@
         subagents: {
           allowAgents: [
             "backend", "frontend", "mobile", "architect",
-            "qa", "devops", "designer", "pm",
+            "qa", "devops", "designer", "pm", "security",
           ],
         },
       },
@@ -174,6 +174,24 @@
         subagents: { allowAgents: [] },
       },
 
+      // ── Security Engineer ─────────────────────────────────────
+      // Segurança de aplicações, infra, nuvem, supply chain, IA/LLM.
+      // Threat modeling, incident response, compliance.
+      {
+        id: "security",
+        workspace: "./agents/security",
+        agentDir: "./agents/security/agent",
+        identity: {
+          name: "Security Engineer",
+          theme: "security engineer — threat-informed, defense in depth, 20+ years",
+          emoji: "🔒",
+        },
+        tools: {
+          profile: "coding",
+        },
+        subagents: { allowAgents: [] },
+      },
+
       // ── Product Manager ───────────────────────────────────────
       // Outcomes-first, discovery + delivery, PRDs, priorização.
       // Perfil minimal: trabalha com documentos, não executa código.
@@ -201,20 +219,21 @@
   //
   // Grafo de comunicação (least-privilege):
   //   tech-lead ↔ todos (orquestrador)
-  //   backend   ↔ frontend, architect, qa, devops
-  //   frontend  ↔ backend, designer, qa
-  //   mobile    ↔ backend, designer, qa
-  //   architect ↔ backend, frontend, mobile, devops, pm
-  //   qa        ↔ backend, frontend, mobile, pm
-  //   devops    ↔ backend, architect
+  //   backend   ↔ frontend, architect, qa, devops, security
+  //   frontend  ↔ backend, designer, qa, security
+  //   mobile    ↔ backend, designer, qa, security
+  //   architect ↔ backend, frontend, mobile, devops, pm, security
+  //   qa        ↔ backend, frontend, mobile, pm, security
+  //   devops    ↔ backend, architect, security
   //   designer  ↔ frontend, mobile, pm
   //   pm        ↔ designer, architect, qa
+  //   security  ↔ backend, frontend, mobile, architect, qa, devops
   tools: {
     agentToAgent: {
       enabled: true,
       allow: [
         "tech-lead", "backend", "frontend", "mobile",
-        "architect", "qa", "devops", "designer", "pm",
+        "architect", "qa", "devops", "designer", "pm", "security",
       ],
     },
     loopDetection: {

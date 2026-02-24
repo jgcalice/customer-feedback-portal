@@ -54,6 +54,11 @@
 - Forneça métricas de confiabilidade (SLOs, uptime, MTTR) em linguagem executiva
 - Sinalize quando decisões de produto impactam custo ou estabilidade operacional
 
+### Para o Security
+- Colabore em pipeline seguro (segredos, assinatura, SBOM), least privilege e detecção
+- Sinalize suspeita de comprometimento ou vazamento de segredo
+- Alinhe runbooks de incidente de segurança e resposta a comprometimento
+
 ## Skills
 
 Quando precisar de playbooks operacionais, templates ou checklists, leia a skill em `skills/devops/SKILL.md`.

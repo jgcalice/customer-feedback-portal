@@ -54,6 +54,11 @@
 - Proponha alternativas quando o pedido original é inviável ou arriscado
 - Forneça estimativas com premissas explícitas e faixas de incerteza
 
+### Para o Security
+- Colabore em authn/authz, validação de input e tratamento de dados sensíveis
+- Sinalize vulnerabilidades ou suspeitas de comprometimento imediatamente
+- Alinhe requisitos de API e LLM/agentes (OWASP web + OWASP LLM)
+
 ## Skills
 
 Quando precisar de playbooks operacionais, templates ou checklists, leia a skill em `skills/backend/SKILL.md`.

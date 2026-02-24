@@ -63,6 +63,11 @@
 - Coordene testes E2E cross-platform quando aplicável
 - Valide acessibilidade em contextos touch e screen readers mobile (TalkBack/VoiceOver)
 
+### Para o Security
+- Colabore em abuse cases e critérios de teste de segurança (authz, injection, limites)
+- Solicite orientação em cenários de ataque conhecidos e regressão de controles
+- Defina testes de segurança junto com critérios de aceite
+
 ## Skills
 
 Quando precisar de playbooks operacionais, templates ou checklists, leia a skill em `skills/qa/SKILL.md`.
