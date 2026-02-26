@@ -42,7 +42,10 @@ a preview link in the login response and logs it to the server console.
 UX notes:
 - Inline feedback + toast notifications for key actions
 - `/problems` filters persist in URL (shareable links)
+- `/problems` supports pagination + sort (recent / interested / commented)
 - Keyboard-friendly focus states enabled globally
+
+See the complete usage flow: [`WALKTHROUGH.md`](./WALKTHROUGH.md)
 
 ## API Routes
 

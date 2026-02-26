@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/components/ToastProvider";
+
+type ProblemSort = "recent" | "most_interested" | "most_commented";
+
+const SORT_OPTIONS: Array<{ value: ProblemSort; label: string }> = [
+  { value: "recent", label: "Most recent" },
+  { value: "most_interested", label: "Most interested" },
+  { value: "most_commented", label: "Most commented" },
+];
 
 type Problem = {
   id: string;
@@ -17,6 +25,30 @@ type Problem = {
 
 type Product = { id: string; name: string };
 
+type ProblemsResponse = {
+  items: Problem[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    sort: ProblemSort;
+  };
+};
+
+function parsePage(value: string | null) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (Number.isNaN(parsed) || parsed < 1) return 1;
+  return parsed;
+}
+
+function parseSort(value: string | null): ProblemSort {
+  if (value === "most_interested" || value === "most_commented") {
+    return value;
+  }
+  return "recent";
+}
+
 export default function ProblemsPage() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -26,9 +58,20 @@ export default function ProblemsPage() {
   const [togglingId, setTogglingId] = useState("");
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const [productId, setProductId] = useState(() => searchParams.get("productId") ?? "");
-  const [status, setStatus] = useState(() => searchParams.get("status") ?? "");
-  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+  const [productId, setProductId] = useState("");
+  const [status, setStatus] = useState("");
+  const [sort, setSort] = useState<ProblemSort>("recent");
+  const [page, setPage] = useState(1);
+  const [searchDraft, setSearchDraft] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [meta, setMeta] = useState<ProblemsResponse["meta"]>({
+    page: 1,
+    pageSize: 6,
+    total: 0,
+    totalPages: 1,
+    sort: "recent",
+  });
   const router = useRouter();
   const { addToast } = useToast();
 
@@ -40,16 +83,42 @@ export default function ProblemsPage() {
   }, []);
 
   useEffect(() => {
-    setProductId(searchParams.get("productId") ?? "");
-    setStatus(searchParams.get("status") ?? "");
-    setSearch(searchParams.get("search") ?? "");
+    const nextProductId = searchParams.get("productId") ?? "";
+    const nextStatus = searchParams.get("status") ?? "";
+    const nextSort = parseSort(searchParams.get("sort"));
+    const nextPage = parsePage(searchParams.get("page"));
+    const nextSearch = searchParams.get("search") ?? "";
+
+    setProductId(nextProductId);
+    setStatus(nextStatus);
+    setSort(nextSort);
+    setPage(nextPage);
+    setSearchDraft(nextSearch);
+    setSearchQuery(nextSearch);
   }, [searchParams]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      const nextQuery = searchDraft.trim();
+      setSearchQuery((currentQuery) => {
+        if (currentQuery === nextQuery) {
+          return currentQuery;
+        }
+        setPage(1);
+        return nextQuery;
+      });
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [searchDraft]);
 
   useEffect(() => {
     const params = new URLSearchParams();
     if (productId) params.set("productId", productId);
     if (status) params.set("status", status);
-    if (search) params.set("search", search);
+    if (searchQuery) params.set("search", searchQuery);
+    if (sort !== "recent") params.set("sort", sort);
+    if (page > 1) params.set("page", String(page));
 
     const nextQuery = params.toString();
     const currentQuery = searchParams.toString();
@@ -60,21 +129,33 @@ export default function ProblemsPage() {
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
       scroll: false,
     });
-  }, [pathname, productId, router, search, searchParams, status]);
+  }, [page, pathname, productId, router, searchParams, searchQuery, sort, status]);
 
   useEffect(() => {
     setLoading(true);
     setError("");
     const params = new URLSearchParams();
+    params.set("paginated", "1");
+    params.set("page", String(page));
+    params.set("pageSize", "6");
+    params.set("sort", sort);
     if (productId) params.set("productId", productId);
     if (status) params.set("status", status);
-    if (search) params.set("search", search);
+    if (searchQuery) params.set("search", searchQuery);
     fetch(`/api/problems?${params.toString()}`)
-      .then((r) => r.json())
-      .then(setProblems)
+      .then((r) => r.json() as Promise<ProblemsResponse>)
+      .then((data) => {
+        setProblems(data.items ?? []);
+        if (data.meta) {
+          setMeta(data.meta);
+          if (data.meta.page !== page) {
+            setPage(data.meta.page);
+          }
+        }
+      })
       .catch(() => setError("Failed to load problems"))
       .finally(() => setLoading(false));
-  }, [productId, status, search]);
+  }, [page, productId, refreshKey, searchQuery, sort, status]);
 
   async function toggleInterest(problem: Problem) {
     setError("");
@@ -119,6 +200,9 @@ export default function ProblemsPage() {
         tone: "success",
         title: !problem.hasInterest ? "Interesse registrado" : "Interesse removido",
       });
+      if (sort !== "recent") {
+        setRefreshKey((value) => value + 1);
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : "Something went wrong";
       setError(message);
@@ -135,10 +219,23 @@ export default function ProblemsPage() {
   function clearFilters() {
     setProductId("");
     setStatus("");
-    setSearch("");
+    setSort("recent");
+    setPage(1);
+    setSearchDraft("");
+    setSearchQuery("");
+    setInfo("Filters cleared.");
+    addToast({
+      tone: "info",
+      title: "Filtros limpos",
+    });
   }
 
-  const totalInterests = problems.reduce((acc, item) => acc + item._count.interests, 0);
+  const totalInterests = useMemo(
+    () => problems.reduce((acc, item) => acc + item._count.interests, 0),
+    [problems]
+  );
+  const fromItem = meta.total === 0 ? 0 : (meta.page - 1) * meta.pageSize + 1;
+  const toItem = meta.total === 0 ? 0 : Math.min(meta.total, meta.page * meta.pageSize);
 
   return (
     <div>
@@ -154,15 +251,15 @@ export default function ProblemsPage() {
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border bg-white p-4">
-          <p className="text-xs text-zinc-500">Visible problems</p>
-          <p className="mt-1 text-2xl font-semibold">{problems.length}</p>
+          <p className="text-xs text-zinc-500">Matching problems</p>
+          <p className="mt-1 text-2xl font-semibold">{meta.total}</p>
         </div>
         <div className="rounded-lg border bg-white p-4">
-          <p className="text-xs text-zinc-500">Total “me afeta”</p>
+          <p className="text-xs text-zinc-500">“Me afeta” in current page</p>
           <p className="mt-1 text-2xl font-semibold">{totalInterests}</p>
         </div>
         <div className="rounded-lg border bg-white p-4">
-          <p className="text-xs text-zinc-500">My interests</p>
+          <p className="text-xs text-zinc-500">My interests (current page)</p>
           <p className="mt-1 text-2xl font-semibold">
             {problems.filter((item) => item.hasInterest).length}
           </p>
@@ -209,10 +306,28 @@ export default function ProblemsPage() {
           id="search-filter"
           type="search"
           placeholder="Search..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchDraft}
+          onChange={(e) => setSearchDraft(e.target.value)}
           className="rounded border border-zinc-300 px-3 py-2"
         />
+        <label htmlFor="sort-filter" className="sr-only">
+          Sort problems
+        </label>
+        <select
+          id="sort-filter"
+          value={sort}
+          onChange={(e) => {
+            setSort(e.target.value as ProblemSort);
+            setPage(1);
+          }}
+          className="rounded border border-zinc-300 px-3 py-2"
+        >
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           onClick={clearFilters}
@@ -223,7 +338,11 @@ export default function ProblemsPage() {
       </div>
 
       {error && <p className="mb-4 text-red-600">{error}</p>}
-      {info && <p className="mb-4 text-emerald-700" aria-live="polite">{info}</p>}
+      {info && (
+        <p className="mb-4 text-emerald-700" aria-live="polite">
+          {info}
+        </p>
+      )}
 
       {loading ? (
         <p className="text-zinc-600">Loading...</p>
@@ -235,47 +354,78 @@ export default function ProblemsPage() {
           </Link>
         </div>
       ) : (
-        <ul className="space-y-4">
-          {problems.map((p) => (
-            <li key={p.id}>
-              <div className="rounded-lg border bg-white p-4 transition hover:border-zinc-400">
-                <div className="flex items-start justify-between gap-3">
-                  <Link href={`/problems/${p.id}`} className="min-w-0 flex-1">
-                    <h2 className="font-semibold">{p.title}</h2>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-zinc-600">
-                      <span>{p.product.name}</span>
-                      <StatusBadge status={p.status} />
-                    </div>
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => toggleInterest(p)}
-                    disabled={togglingId === p.id}
-                    aria-label={
-                      p.hasInterest
-                        ? `Remove interest for ${p.title}`
-                        : `Mark ${p.title} as affecting me`
-                    }
-                    className={`rounded px-3 py-1.5 text-sm font-medium ${
-                      p.hasInterest
-                        ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
-                        : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-                    } disabled:opacity-50`}
-                  >
-                    {togglingId === p.id
-                      ? "..."
-                      : p.hasInterest
-                        ? "✓ Me afeta"
-                        : "Me afeta"}
-                  </button>
+        <div>
+          <ul className="space-y-4">
+            {problems.map((p) => (
+              <li key={p.id}>
+                <div className="rounded-lg border bg-white p-4 transition hover:border-zinc-400">
+                  <div className="flex items-start justify-between gap-3">
+                    <Link href={`/problems/${p.id}`} className="min-w-0 flex-1">
+                      <h2 className="font-semibold">{p.title}</h2>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-zinc-600">
+                        <span>{p.product.name}</span>
+                        <StatusBadge status={p.status} />
+                      </div>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => toggleInterest(p)}
+                      disabled={togglingId === p.id}
+                      aria-label={
+                        p.hasInterest
+                          ? `Remove interest for ${p.title}`
+                          : `Mark ${p.title} as affecting me`
+                      }
+                      className={`rounded px-3 py-1.5 text-sm font-medium ${
+                        p.hasInterest
+                          ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                          : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                      } disabled:opacity-50`}
+                    >
+                      {togglingId === p.id
+                        ? "..."
+                        : p.hasInterest
+                          ? "✓ Me afeta"
+                          : "Me afeta"}
+                    </button>
+                  </div>
+                  <p className="mt-3 text-sm text-zinc-500">
+                    {p._count.interests} pessoas marcadas · {p._count.comments} comentarios
+                  </p>
                 </div>
-                <p className="mt-3 text-sm text-zinc-500">
-                  {p._count.interests} pessoas marcadas · {p._count.comments} comentarios
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-white px-4 py-3">
+            <p className="text-sm text-zinc-600">
+              Showing {fromItem}-{toItem} of {meta.total}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={meta.page <= 1}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                className="rounded border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-zinc-700">
+                Page {meta.page} of {meta.totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={meta.page >= meta.totalPages}
+                onClick={() =>
+                  setPage((current) => Math.min(meta.totalPages, current + 1))
+                }
+                className="rounded border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireAuth, getSession } from "@/lib/auth";
+
+type ProblemSort = "recent" | "most_interested" | "most_commented";
+
+function parsePositiveInt(value: string | null, fallback: number) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (Number.isNaN(parsed) || parsed < 1) {
+    return fallback;
+  }
+  return parsed;
+}
+
+function parseSort(value: string | null): ProblemSort {
+  if (value === "most_interested" || value === "most_commented") {
+    return value;
+  }
+  return "recent";
+}
+
+function buildOrderBy(sort: ProblemSort): Prisma.ProblemOrderByWithRelationInput[] {
+  if (sort === "most_interested") {
+    return [{ interests: { _count: "desc" } }, { createdAt: "desc" }];
+  }
+  if (sort === "most_commented") {
+    return [{ comments: { _count: "desc" } }, { createdAt: "desc" }];
+  }
+  return [{ createdAt: "desc" }];
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,6 +36,12 @@ export async function GET(request: NextRequest) {
     const productId = searchParams.get("productId");
     const status = searchParams.get("status");
     const search = searchParams.get("search");
+    const sort = parseSort(searchParams.get("sort"));
+    const paginated =
+      searchParams.get("paginated") === "1" ||
+      searchParams.get("paginated") === "true";
+    const page = parsePositiveInt(searchParams.get("page"), 1);
+    const pageSize = Math.min(parsePositiveInt(searchParams.get("pageSize"), 6), 50);
 
     const where: Record<string, unknown> = {};
     if (productId) where.productId = productId;
@@ -19,6 +53,16 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    const orderBy = buildOrderBy(sort);
+    let total = 0;
+    let safePage = page;
+
+    if (paginated) {
+      total = await prisma.problem.count({ where });
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      safePage = Math.min(page, totalPages);
+    }
+
     const problems = await prisma.problem.findMany({
       where,
       include: {
@@ -26,7 +70,13 @@ export async function GET(request: NextRequest) {
         createdBy: { select: { name: true, email: true } },
         _count: { select: { interests: true, comments: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy,
+      ...(paginated
+        ? {
+            skip: (safePage - 1) * pageSize,
+            take: pageSize,
+          }
+        : {}),
     });
 
     const session = await getSession();
@@ -48,6 +98,20 @@ export async function GET(request: NextRequest) {
       ...p,
       hasInterest: !!interestMap[p.id],
     }));
+
+    if (paginated) {
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      return NextResponse.json({
+        items: result,
+        meta: {
+          page: safePage,
+          pageSize,
+          total,
+          totalPages,
+          sort,
+        },
+      });
+    }
 
     return NextResponse.json(result);
   } catch (e) {
