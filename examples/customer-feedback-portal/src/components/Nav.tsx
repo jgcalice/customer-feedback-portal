@@ -23,6 +23,9 @@ export function Nav({ user }: { user: { email: string; role: string } | null }) 
     <nav className="border-b bg-white px-4 py-3">
       <div className="mx-auto flex max-w-4xl items-center justify-between">
         <div className="flex gap-4">
+          <Link href="/" className="font-medium hover:underline">
+            Dashboard
+          </Link>
           <Link href="/problems" className="font-medium hover:underline">
             Problems
           </Link>

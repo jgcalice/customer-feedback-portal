@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       include: {
         product: true,
         createdBy: { select: { name: true, email: true } },
-        _count: { select: { interests: true } },
+        _count: { select: { interests: true, comments: true } },
       },
       orderBy: { createdAt: "desc" },
     });

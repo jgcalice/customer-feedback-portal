@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { StatusBadge } from "@/components/StatusBadge";
 
 type Problem = {
   id: string;
   title: string;
   status: string;
   product: { name: string };
-  _count: { interests: number };
+  _count: { interests: number; comments: number };
   hasInterest: boolean;
 };
 
@@ -19,9 +21,12 @@ export default function ProblemsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [togglingId, setTogglingId] = useState("");
   const [productId, setProductId] = useState("");
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     fetch("/api/products")
@@ -32,6 +37,7 @@ export default function ProblemsPage() {
 
   useEffect(() => {
     setLoading(true);
+    setError("");
     const params = new URLSearchParams();
     if (productId) params.set("productId", productId);
     if (status) params.set("status", status);
@@ -43,6 +49,50 @@ export default function ProblemsPage() {
       .finally(() => setLoading(false));
   }, [productId, status, search]);
 
+  async function toggleInterest(problem: Problem) {
+    setError("");
+    setInfo("");
+    setTogglingId(problem.id);
+    try {
+      const method = problem.hasInterest ? "DELETE" : "POST";
+      const res = await fetch(`/api/problems/${problem.id}/interest`, { method });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 401) {
+          router.push("/login");
+          return;
+        }
+        throw new Error(data.error ?? "Failed");
+      }
+
+      const nextCount =
+        data?._count?.interests ??
+        problem._count.interests + (problem.hasInterest ? -1 : 1);
+      setProblems((prev) =>
+        prev.map((item) =>
+          item.id === problem.id
+            ? {
+                ...item,
+                hasInterest: !problem.hasInterest,
+                _count: { interests: nextCount },
+              }
+            : item
+        )
+      );
+      setInfo(
+        !problem.hasInterest
+          ? "Marcado como 'me afeta'."
+          : "Marcacao removida."
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setTogglingId("");
+    }
+  }
+
+  const totalInterests = problems.reduce((acc, item) => acc + item._count.interests, 0);
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -53,6 +103,23 @@ export default function ProblemsPage() {
         >
           New Problem
         </Link>
+      </div>
+
+      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border bg-white p-4">
+          <p className="text-xs text-zinc-500">Visible problems</p>
+          <p className="mt-1 text-2xl font-semibold">{problems.length}</p>
+        </div>
+        <div className="rounded-lg border bg-white p-4">
+          <p className="text-xs text-zinc-500">Total “me afeta”</p>
+          <p className="mt-1 text-2xl font-semibold">{totalInterests}</p>
+        </div>
+        <div className="rounded-lg border bg-white p-4">
+          <p className="text-xs text-zinc-500">My interests</p>
+          <p className="mt-1 text-2xl font-semibold">
+            {problems.filter((item) => item.hasInterest).length}
+          </p>
+        </div>
       </div>
 
       <div className="mb-6 flex flex-wrap gap-4">
@@ -90,6 +157,7 @@ export default function ProblemsPage() {
       </div>
 
       {error && <p className="mb-4 text-red-600">{error}</p>}
+      {info && <p className="mb-4 text-emerald-700">{info}</p>}
 
       {loading ? (
         <p className="text-zinc-600">Loading...</p>
@@ -104,23 +172,36 @@ export default function ProblemsPage() {
         <ul className="space-y-4">
           {problems.map((p) => (
             <li key={p.id}>
-              <Link
-                href={`/problems/${p.id}`}
-                className="block rounded-lg border bg-white p-4 hover:border-zinc-400"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
+              <div className="rounded-lg border bg-white p-4 transition hover:border-zinc-400">
+                <div className="flex items-start justify-between gap-3">
+                  <Link href={`/problems/${p.id}`} className="min-w-0 flex-1">
                     <h2 className="font-semibold">{p.title}</h2>
-                    <p className="text-sm text-zinc-600">
-                      {p.product.name} · {p.status}
-                    </p>
-                  </div>
-                  <span className="rounded bg-zinc-100 px-2 py-1 text-sm">
-                    {p._count.interests} me afeta
-                    {p.hasInterest && " ✓"}
-                  </span>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-zinc-600">
+                      <span>{p.product.name}</span>
+                      <StatusBadge status={p.status} />
+                    </div>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => toggleInterest(p)}
+                    disabled={togglingId === p.id}
+                    className={`rounded px-3 py-1.5 text-sm font-medium ${
+                      p.hasInterest
+                        ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                        : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                    } disabled:opacity-50`}
+                  >
+                    {togglingId === p.id
+                      ? "..."
+                      : p.hasInterest
+                        ? "✓ Me afeta"
+                        : "Me afeta"}
+                  </button>
                 </div>
-              </Link>
+                <p className="mt-3 text-sm text-zinc-500">
+                  {p._count.interests} pessoas marcadas · {p._count.comments} comentarios
+                </p>
+              </div>
             </li>
           ))}
         </ul>

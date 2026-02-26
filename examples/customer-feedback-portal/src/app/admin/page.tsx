@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { StatusBadge } from "@/components/StatusBadge";
 
 type Problem = {
   id: string;
@@ -18,7 +19,9 @@ type RoadmapItem = {
   id: string;
   title: string;
   status: string;
+  targetMonthOrQuarter: string | null;
   product: { name: string };
+  problemRoadmap?: { problem: { id: string; title: string } }[];
 };
 
 export default function AdminPage() {
@@ -33,6 +36,8 @@ export default function AdminPage() {
     title: "",
     description: "",
     status: "planned",
+    targetMonthOrQuarter: "",
+    relatedProblemId: "",
   });
   const [mergeForm, setMergeForm] = useState({
     targetProblemId: "",
@@ -110,6 +115,7 @@ export default function AdminPage() {
       setProblems((prev) =>
         prev.map((p) => (p.id === problemId ? updated : p))
       );
+      setSuccess("Problem status updated.");
     } catch {
       setError("Failed to update status");
     }
@@ -124,7 +130,16 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/roadmap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(roadmapForm),
+        body: JSON.stringify({
+          productId: roadmapForm.productId,
+          title: roadmapForm.title,
+          description: roadmapForm.description,
+          status: roadmapForm.status,
+          targetMonthOrQuarter: roadmapForm.targetMonthOrQuarter,
+          problemIds: roadmapForm.relatedProblemId
+            ? [roadmapForm.relatedProblemId]
+            : [],
+        }),
       });
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
@@ -142,6 +157,8 @@ export default function AdminPage() {
         title: "",
         description: "",
         status: "planned",
+        targetMonthOrQuarter: "",
+        relatedProblemId: "",
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
@@ -251,6 +268,18 @@ export default function AdminPage() {
             }
             className="rounded border border-zinc-300 px-3 py-2"
           />
+          <input
+            type="text"
+            placeholder="Target (e.g. 2026-Q2)"
+            value={roadmapForm.targetMonthOrQuarter}
+            onChange={(e) =>
+              setRoadmapForm({
+                ...roadmapForm,
+                targetMonthOrQuarter: e.target.value,
+              })
+            }
+            className="rounded border border-zinc-300 px-3 py-2"
+          />
           <select
             value={roadmapForm.status}
             onChange={(e) =>
@@ -261,6 +290,20 @@ export default function AdminPage() {
             <option value="planned">Planned</option>
             <option value="in_progress">In progress</option>
             <option value="delivered">Delivered</option>
+          </select>
+          <select
+            value={roadmapForm.relatedProblemId}
+            onChange={(e) =>
+              setRoadmapForm({ ...roadmapForm, relatedProblemId: e.target.value })
+            }
+            className="rounded border border-zinc-300 px-3 py-2"
+          >
+            <option value="">No related problem</option>
+            {problems.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title}
+              </option>
+            ))}
           </select>
           <button
             type="submit"
@@ -379,7 +422,25 @@ export default function AdminPage() {
                 key={r.id}
                 className="rounded border bg-white p-3"
               >
-                {r.title} ({r.product.name}) · {r.status}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-medium">
+                    {r.title} <span className="text-zinc-500">({r.product.name})</span>
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={r.status} />
+                    {r.targetMonthOrQuarter && (
+                      <span className="text-xs text-zinc-500">
+                        {r.targetMonthOrQuarter}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {r.problemRoadmap && r.problemRoadmap.length > 0 && (
+                  <p className="mt-2 text-sm text-zinc-600">
+                    Related:{" "}
+                    {r.problemRoadmap.map((item) => item.problem.title).join(", ")}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

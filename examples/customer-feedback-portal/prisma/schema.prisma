@@ -19,6 +19,7 @@ model User {
 
   problems   Problem[]
   interests  Interest[]
+  comments   Comment[]
 }
 
 model Product {
@@ -47,6 +48,7 @@ model Problem {
   createdBy User       @relation(fields: [createdById], references: [id])
   interests Interest[]
   problemRoadmap ProblemRoadmap[]
+  comments Comment[]
 
   @@index([productId])
   @@index([status])
@@ -88,4 +90,18 @@ model ProblemRoadmap {
   roadmapItem RoadmapItem @relation(fields: [roadmapItemId], references: [id], onDelete: Cascade)
 
   @@id([problemId, roadmapItemId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  problemId String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([problemId])
+  @@index([userId])
 }

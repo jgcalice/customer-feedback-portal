@@ -16,6 +16,18 @@ export async function GET(
         product: true,
         createdBy: { select: { name: true, email: true } },
         _count: { select: { interests: true } },
+        comments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 

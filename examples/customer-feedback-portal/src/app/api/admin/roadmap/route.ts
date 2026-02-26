@@ -6,8 +6,14 @@ export async function POST(request: NextRequest) {
   try {
     await requireInternal();
     const body = await request.json();
-    const { productId, title, description, status, targetMonthOrQuarter } =
-      body;
+    const {
+      productId,
+      title,
+      description,
+      status,
+      targetMonthOrQuarter,
+      problemIds,
+    } = body;
 
     if (!productId || !title) {
       return NextResponse.json(
@@ -16,15 +22,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const item = await prisma.roadmapItem.create({
-      data: {
-        productId,
-        title,
-        description: description ?? "",
-        status: status ?? "planned",
-        targetMonthOrQuarter: targetMonthOrQuarter ?? "",
-      },
-      include: { product: true },
+    const relatedProblemIds = Array.isArray(problemIds)
+      ? problemIds.map((id) => String(id)).filter(Boolean)
+      : [];
+
+    const item = await prisma.$transaction(async (tx) => {
+      const created = await tx.roadmapItem.create({
+        data: {
+          productId,
+          title,
+          description: description ?? "",
+          status: status ?? "planned",
+          targetMonthOrQuarter: targetMonthOrQuarter ?? "",
+          problemRoadmap: {
+            create: relatedProblemIds.map((problemId) => ({
+              problemId,
+            })),
+          },
+        },
+        include: {
+          product: true,
+          problemRoadmap: {
+            include: {
+              problem: {
+                select: { id: true, title: true },
+              },
+            },
+          },
+        },
+      });
+
+      return created;
     });
 
     return NextResponse.json(item);

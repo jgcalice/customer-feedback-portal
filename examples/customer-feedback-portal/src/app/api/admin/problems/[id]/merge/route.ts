@@ -78,6 +78,21 @@ export async function POST(
         });
       }
 
+      const duplicateComments = await tx.comment.findMany({
+        where: { problemId: duplicateProblemId },
+        select: { userId: true, text: true, createdAt: true },
+      });
+      for (const comment of duplicateComments) {
+        await tx.comment.create({
+          data: {
+            problemId: targetProblemId,
+            userId: comment.userId,
+            text: `(from merged duplicate) ${comment.text}`,
+            createdAt: comment.createdAt,
+          },
+        });
+      }
+
       if (
         duplicate.problemStatement &&
         !target.problemStatement.includes(duplicate.problemStatement)

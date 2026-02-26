@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { StatusBadge } from "@/components/StatusBadge";
 
 type RoadmapItem = {
   id: string;
@@ -55,7 +56,7 @@ export default function RoadmapPage() {
                     key={item.id}
                     className="rounded-lg border bg-white p-4"
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-4">
                       <div>
                         <h3 className="font-medium">{item.title}</h3>
                         {item.description && (
@@ -72,10 +73,12 @@ export default function RoadmapPage() {
                           </p>
                         )}
                       </div>
-                      <span className="rounded bg-zinc-100 px-2 py-1 text-sm">
-                        {item.status}
+                      <span className="inline-flex items-center gap-2 text-sm">
+                        <StatusBadge status={item.status} />
                         {item.targetMonthOrQuarter &&
-                          ` · ${item.targetMonthOrQuarter}`}
+                          <span className="text-zinc-500">
+                            {item.targetMonthOrQuarter}
+                          </span>}
                       </span>
                     </div>
                   </li>
