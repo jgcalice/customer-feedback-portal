@@ -39,6 +39,11 @@ a preview link in the login response and logs it to the server console.
 - `/roadmap` - Roadmap by product
 - `/admin` - Internal only: update status, add roadmap items, merge duplicates
 
+UX notes:
+- Inline feedback + toast notifications for key actions
+- `/problems` filters persist in URL (shareable links)
+- Keyboard-friendly focus states enabled globally
+
 ## API Routes
 
 - `POST /api/auth/request-link` - Generate/send magic link

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useToast } from "@/components/ToastProvider";
 
 type Problem = {
   id: string;
@@ -28,6 +29,7 @@ type Problem = {
 export default function ProblemDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params.id as string;
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +39,7 @@ export default function ProblemDetailPage() {
   const [toggling, setToggling] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
+  const { addToast } = useToast();
 
   useEffect(() => {
     fetch(`/api/problems/${id}`)
@@ -48,6 +51,17 @@ export default function ProblemDetailPage() {
       .catch(() => setLoadError("Problem not found"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (searchParams.get("created") === "1") {
+      addToast({
+        tone: "success",
+        title: "Problema criado",
+        description: "Agora voce pode acompanhar e receber interesse de outros clientes.",
+      });
+      router.replace(`/problems/${id}`, { scroll: false });
+    }
+  }, [addToast, id, router, searchParams]);
 
   async function toggleInterest() {
     if (!problem) return;
@@ -74,9 +88,15 @@ export default function ProblemDetailPage() {
         },
       });
       setInfo(!problem.hasInterest ? "Marcado como 'me afeta'." : "Marcacao removida.");
+      addToast({
+        tone: "success",
+        title: !problem.hasInterest ? "Interesse registrado" : "Interesse removido",
+      });
       router.refresh();
     } catch {
-      setError("Something went wrong");
+      const message = "Something went wrong";
+      setError(message);
+      addToast({ tone: "error", title: "Erro ao atualizar interesse", description: message });
     } finally {
       setToggling(false);
     }
@@ -115,8 +135,14 @@ export default function ProblemDetailPage() {
       });
       setCommentText("");
       setInfo("Comment posted.");
+      addToast({
+        tone: "success",
+        title: "Comentario publicado",
+      });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      const message = e instanceof Error ? e.message : "Something went wrong";
+      setError(message);
+      addToast({ tone: "error", title: "Falha ao comentar", description: message });
     } finally {
       setCommentLoading(false);
     }
@@ -161,7 +187,7 @@ export default function ProblemDetailPage() {
           </button>
         </div>
         {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-        {info && <p className="mb-3 text-sm text-emerald-700">{info}</p>}
+        {info && <p className="mb-3 text-sm text-emerald-700" aria-live="polite">{info}</p>}
         <dl className="space-y-4">
           <div>
             <dt className="text-sm font-medium text-zinc-500">Problem</dt>
@@ -198,6 +224,7 @@ export default function ProblemDetailPage() {
             onChange={(e) => setCommentText(e.target.value)}
             rows={3}
             placeholder="Add context, examples, or details..."
+            aria-label="Comment text"
             className="w-full rounded border border-zinc-300 px-3 py-2"
           />
           <button

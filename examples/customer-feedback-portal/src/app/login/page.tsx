@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useToast } from "@/components/ToastProvider";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -11,6 +12,8 @@ export default function LoginPage() {
   const [magicLink, setMagicLink] = useState("");
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
+  const { addToast } = useToast();
+  const notifiedErrorRef = useRef("");
   const callbackError = useMemo(() => {
     const value = searchParams.get("error");
     if (value === "invalid_link") {
@@ -21,6 +24,17 @@ export default function LoginPage() {
     }
     return "";
   }, [searchParams]);
+
+  useEffect(() => {
+    if (callbackError && notifiedErrorRef.current !== callbackError) {
+      addToast({
+        tone: "error",
+        title: "Falha no login",
+        description: callbackError,
+      });
+      notifiedErrorRef.current = callbackError;
+    }
+  }, [addToast, callbackError]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,19 +50,25 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Login failed");
+        const message = data.error ?? "Login failed";
+        setError(message);
+        addToast({ tone: "error", title: "Nao foi possivel enviar o link", description: message });
         return;
       }
+      const successMessage = data.sentByEmail
+        ? "Enviamos o link magico para seu e-mail."
+        : "Link magico gerado. Use o link abaixo (ambiente de desenvolvimento).";
       setSuccess(
-        data.sentByEmail
-          ? "Enviamos o link magico para seu e-mail."
-          : "Link magico gerado. Use o link abaixo (ambiente de desenvolvimento)."
+        successMessage
       );
+      addToast({ tone: "success", title: "Link enviado", description: successMessage });
       if (typeof data.magicLink === "string") {
         setMagicLink(data.magicLink);
       }
     } catch {
-      setError("Something went wrong");
+      const message = "Something went wrong";
+      setError(message);
+      addToast({ tone: "error", title: "Erro inesperado", description: message });
     } finally {
       setLoading(false);
     }
@@ -68,6 +88,7 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            aria-label="Email for magic link login"
             className="w-full rounded border border-zinc-300 px-3 py-2"
           />
         </div>

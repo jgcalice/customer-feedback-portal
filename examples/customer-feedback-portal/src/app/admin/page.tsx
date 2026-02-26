@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useToast } from "@/components/ToastProvider";
 
 type Problem = {
   id: string;
@@ -46,6 +47,7 @@ export default function AdminPage() {
   const [submitting, setSubmitting] = useState(false);
   const [mergeSubmitting, setMergeSubmitting] = useState(false);
   const router = useRouter();
+  const { addToast } = useToast();
 
   useEffect(() => {
     fetch("/api/me")
@@ -116,8 +118,16 @@ export default function AdminPage() {
         prev.map((p) => (p.id === problemId ? updated : p))
       );
       setSuccess("Problem status updated.");
+      addToast({
+        tone: "success",
+        title: "Status atualizado",
+      });
     } catch {
       setError("Failed to update status");
+      addToast({
+        tone: "error",
+        title: "Falha ao atualizar status",
+      });
     }
   }
 
@@ -152,6 +162,10 @@ export default function AdminPage() {
       const item = await res.json();
       setRoadmap((prev) => [...prev, item]);
       setSuccess("Roadmap item added.");
+      addToast({
+        tone: "success",
+        title: "Item de roadmap criado",
+      });
       setRoadmapForm({
         productId: products[0]?.id ?? "",
         title: "",
@@ -162,6 +176,11 @@ export default function AdminPage() {
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
+      addToast({
+        tone: "error",
+        title: "Falha ao criar item de roadmap",
+        description: e instanceof Error ? e.message : "Failed",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -205,12 +224,21 @@ export default function AdminPage() {
           .map((p) => (p.id === data.problem.id ? data.problem : p))
       );
       setSuccess("Problems merged successfully.");
+      addToast({
+        tone: "success",
+        title: "Duplicados consolidados",
+      });
       setMergeForm((prev) => ({
         ...prev,
         duplicateProblemId: "",
       }));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to merge");
+      addToast({
+        tone: "error",
+        title: "Falha ao mesclar duplicados",
+        description: e instanceof Error ? e.message : "Failed to merge",
+      });
     } finally {
       setMergeSubmitting(false);
     }
@@ -226,7 +254,7 @@ export default function AdminPage() {
       </p>
 
       {error && <p className="mb-4 text-red-600">{error}</p>}
-      {success && <p className="mb-4 text-emerald-700">{success}</p>}
+      {success && <p className="mb-4 text-emerald-700" aria-live="polite">{success}</p>}
 
       <section className="mb-8">
         <h2 className="mb-4 text-lg font-semibold">Add Roadmap Item</h2>
@@ -240,6 +268,7 @@ export default function AdminPage() {
               setRoadmapForm({ ...roadmapForm, productId: e.target.value })
             }
             required
+            aria-label="Roadmap product"
             className="rounded border border-zinc-300 px-3 py-2"
           >
             <option value="">Product</option>
@@ -257,6 +286,7 @@ export default function AdminPage() {
               setRoadmapForm({ ...roadmapForm, title: e.target.value })
             }
             required
+            aria-label="Roadmap title"
             className="rounded border border-zinc-300 px-3 py-2"
           />
           <input
@@ -266,6 +296,7 @@ export default function AdminPage() {
             onChange={(e) =>
               setRoadmapForm({ ...roadmapForm, description: e.target.value })
             }
+            aria-label="Roadmap description"
             className="rounded border border-zinc-300 px-3 py-2"
           />
           <input
@@ -278,6 +309,7 @@ export default function AdminPage() {
                 targetMonthOrQuarter: e.target.value,
               })
             }
+            aria-label="Roadmap target"
             className="rounded border border-zinc-300 px-3 py-2"
           />
           <select
@@ -285,6 +317,7 @@ export default function AdminPage() {
             onChange={(e) =>
               setRoadmapForm({ ...roadmapForm, status: e.target.value })
             }
+            aria-label="Roadmap status"
             className="rounded border border-zinc-300 px-3 py-2"
           >
             <option value="planned">Planned</option>
@@ -296,6 +329,7 @@ export default function AdminPage() {
             onChange={(e) =>
               setRoadmapForm({ ...roadmapForm, relatedProblemId: e.target.value })
             }
+            aria-label="Related problem"
             className="rounded border border-zinc-300 px-3 py-2"
           >
             <option value="">No related problem</option>
@@ -342,6 +376,7 @@ export default function AdminPage() {
                   onChange={(e) =>
                     updateStatus(p.id, e.target.value)
                   }
+                  aria-label={`Status for ${p.title}`}
                   className="rounded border border-zinc-300 px-3 py-2"
                 >
                   <option value="new">New</option>
@@ -373,6 +408,7 @@ export default function AdminPage() {
                 setMergeForm({ ...mergeForm, targetProblemId: e.target.value })
               }
               required
+              aria-label="Target problem"
               className="rounded border border-zinc-300 px-3 py-2"
             >
               <option value="">Target problem (keep)</option>
@@ -391,6 +427,7 @@ export default function AdminPage() {
                 })
               }
               required
+              aria-label="Duplicate problem"
               className="rounded border border-zinc-300 px-3 py-2"
             >
               <option value="">Duplicate problem (remove)</option>

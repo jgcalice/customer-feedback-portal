@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useToast } from "@/components/ToastProvider";
 
 type Product = { id: string; name: string };
 
@@ -19,11 +20,18 @@ export default function NewProblemPage() {
     workaround: "",
   });
   const router = useRouter();
+  const { addToast } = useToast();
 
   useEffect(() => {
     fetch("/api/products")
       .then((r) => r.json())
-      .then((data) => setProducts(data))
+      .then((data: Product[]) => {
+        setProducts(data);
+        setForm((prev) => ({
+          ...prev,
+          productId: prev.productId || data[0]?.id || "",
+        }));
+      })
       .catch(() => setError("Failed to load products"));
   }, []);
 
@@ -43,13 +51,22 @@ export default function NewProblemPage() {
           router.push("/login");
           return;
         }
-        setError(data.error ?? "Failed to create");
+        const message = data.error ?? "Failed to create";
+        setError(message);
+        addToast({ tone: "error", title: "Nao foi possivel enviar", description: message });
         return;
       }
-      router.push(`/problems/${data.id}`);
+      addToast({
+        tone: "success",
+        title: "Problema enviado",
+        description: "Seu problema foi registrado com sucesso.",
+      });
+      router.push(`/problems/${data.id}?created=1`);
       router.refresh();
     } catch {
-      setError("Something went wrong");
+      const message = "Something went wrong";
+      setError(message);
+      addToast({ tone: "error", title: "Erro inesperado", description: message });
     } finally {
       setLoading(false);
     }
@@ -78,6 +95,7 @@ export default function NewProblemPage() {
             value={form.productId}
             onChange={(e) => setForm({ ...form, productId: e.target.value })}
             required
+            aria-label="Product"
             className="w-full rounded border border-zinc-300 px-3 py-2"
           >
             <option value="">Select...</option>
@@ -95,6 +113,7 @@ export default function NewProblemPage() {
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             required
+            aria-label="Problem title"
             placeholder="Short description"
             className="w-full rounded border border-zinc-300 px-3 py-2"
           />
@@ -110,6 +129,7 @@ export default function NewProblemPage() {
             }
             required
             rows={3}
+            aria-label="Problem statement"
             className="w-full rounded border border-zinc-300 px-3 py-2"
           />
         </div>
@@ -122,6 +142,7 @@ export default function NewProblemPage() {
             value={form.impact}
             onChange={(e) => setForm({ ...form, impact: e.target.value })}
             required
+            aria-label="Impact"
             placeholder="e.g. Lost time, errors, manual work"
             className="w-full rounded border border-zinc-300 px-3 py-2"
           />
@@ -131,6 +152,7 @@ export default function NewProblemPage() {
           <select
             value={form.frequency}
             onChange={(e) => setForm({ ...form, frequency: e.target.value })}
+            aria-label="Frequency"
             className="w-full rounded border border-zinc-300 px-3 py-2"
           >
             <option value="daily">Daily</option>
@@ -148,6 +170,7 @@ export default function NewProblemPage() {
             value={form.workaround}
             onChange={(e) => setForm({ ...form, workaround: e.target.value })}
             placeholder="How do you work around it today?"
+            aria-label="Workaround"
             className="w-full rounded border border-zinc-300 px-3 py-2"
           />
         </div>

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useToast } from "@/components/ToastProvider";
 
 type Problem = {
   id: string;
@@ -23,10 +24,13 @@ export default function ProblemsPage() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [togglingId, setTogglingId] = useState("");
-  const [productId, setProductId] = useState("");
-  const [status, setStatus] = useState("");
-  const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const [productId, setProductId] = useState(() => searchParams.get("productId") ?? "");
+  const [status, setStatus] = useState(() => searchParams.get("status") ?? "");
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const router = useRouter();
+  const { addToast } = useToast();
 
   useEffect(() => {
     fetch("/api/products")
@@ -36,13 +40,36 @@ export default function ProblemsPage() {
   }, []);
 
   useEffect(() => {
+    setProductId(searchParams.get("productId") ?? "");
+    setStatus(searchParams.get("status") ?? "");
+    setSearch(searchParams.get("search") ?? "");
+  }, [searchParams]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (productId) params.set("productId", productId);
+    if (status) params.set("status", status);
+    if (search) params.set("search", search);
+
+    const nextQuery = params.toString();
+    const currentQuery = searchParams.toString();
+    if (nextQuery === currentQuery) {
+      return;
+    }
+
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      scroll: false,
+    });
+  }, [pathname, productId, router, search, searchParams, status]);
+
+  useEffect(() => {
     setLoading(true);
     setError("");
     const params = new URLSearchParams();
     if (productId) params.set("productId", productId);
     if (status) params.set("status", status);
     if (search) params.set("search", search);
-    fetch(`/api/problems?${params}`)
+    fetch(`/api/problems?${params.toString()}`)
       .then((r) => r.json())
       .then(setProblems)
       .catch(() => setError("Failed to load problems"))
@@ -88,11 +115,27 @@ export default function ProblemsPage() {
           ? "Marcado como 'me afeta'."
           : "Marcacao removida."
       );
+      addToast({
+        tone: "success",
+        title: !problem.hasInterest ? "Interesse registrado" : "Interesse removido",
+      });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      const message = e instanceof Error ? e.message : "Something went wrong";
+      setError(message);
+      addToast({
+        tone: "error",
+        title: "Falha ao atualizar interesse",
+        description: message,
+      });
     } finally {
       setTogglingId("");
     }
+  }
+
+  function clearFilters() {
+    setProductId("");
+    setStatus("");
+    setSearch("");
   }
 
   const totalInterests = problems.reduce((acc, item) => acc + item._count.interests, 0);
@@ -127,7 +170,11 @@ export default function ProblemsPage() {
       </div>
 
       <div className="mb-6 flex flex-wrap gap-4">
+        <label htmlFor="product-filter" className="sr-only">
+          Filter by product
+        </label>
         <select
+          id="product-filter"
           value={productId}
           onChange={(e) => setProductId(e.target.value)}
           className="rounded border border-zinc-300 px-3 py-2"
@@ -139,7 +186,11 @@ export default function ProblemsPage() {
             </option>
           ))}
         </select>
+        <label htmlFor="status-filter" className="sr-only">
+          Filter by status
+        </label>
         <select
+          id="status-filter"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           className="rounded border border-zinc-300 px-3 py-2"
@@ -151,17 +202,28 @@ export default function ProblemsPage() {
           <option value="in_progress">In progress</option>
           <option value="delivered">Delivered</option>
         </select>
+        <label htmlFor="search-filter" className="sr-only">
+          Search problems
+        </label>
         <input
+          id="search-filter"
           type="search"
           placeholder="Search..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="rounded border border-zinc-300 px-3 py-2"
         />
+        <button
+          type="button"
+          onClick={clearFilters}
+          className="rounded border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+        >
+          Clear filters
+        </button>
       </div>
 
       {error && <p className="mb-4 text-red-600">{error}</p>}
-      {info && <p className="mb-4 text-emerald-700">{info}</p>}
+      {info && <p className="mb-4 text-emerald-700" aria-live="polite">{info}</p>}
 
       {loading ? (
         <p className="text-zinc-600">Loading...</p>
@@ -189,6 +251,11 @@ export default function ProblemsPage() {
                     type="button"
                     onClick={() => toggleInterest(p)}
                     disabled={togglingId === p.id}
+                    aria-label={
+                      p.hasInterest
+                        ? `Remove interest for ${p.title}`
+                        : `Mark ${p.title} as affecting me`
+                    }
                     className={`rounded px-3 py-1.5 text-sm font-medium ${
                       p.hasInterest
                         ? "bg-amber-100 text-amber-800 hover:bg-amber-200"

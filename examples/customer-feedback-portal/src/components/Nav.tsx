@@ -3,15 +3,22 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useToast } from "@/components/ToastProvider";
 
 export function Nav({ user }: { user: { email: string; role: string } | null }) {
   const [loggingOut, setLoggingOut] = useState(false);
   const router = useRouter();
+  const { addToast } = useToast();
 
   async function handleLogout() {
     setLoggingOut(true);
     try {
       await fetch("/api/auth/logout", { method: "POST" });
+      addToast({
+        tone: "info",
+        title: "Sessao encerrada",
+        description: "Voce saiu do portal com sucesso.",
+      });
     } finally {
       setLoggingOut(false);
       router.push("/login");
@@ -21,7 +28,7 @@ export function Nav({ user }: { user: { email: string; role: string } | null }) 
 
   return (
     <nav className="border-b bg-white px-4 py-3">
-      <div className="mx-auto flex max-w-4xl items-center justify-between">
+      <div className="mx-auto flex max-w-5xl items-center justify-between">
         <div className="flex gap-4">
           <Link href="/" className="font-medium hover:underline">
             Dashboard

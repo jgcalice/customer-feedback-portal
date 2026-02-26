@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/Nav";
+import { ToastProvider } from "@/components/ToastProvider";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -41,8 +42,10 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-zinc-50 antialiased`}
       >
-        <Nav user={user} />
-        <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+        <ToastProvider>
+          <Nav user={user} />
+          <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+        </ToastProvider>
       </body>
     </html>
   );
