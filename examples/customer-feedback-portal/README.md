@@ -11,6 +11,7 @@ A minimal fullstack portal for submitting and tracking product problems.
 ## Setup
 
 ```bash
+cp .env.example .env
 npm install
 npm run db:init   # migrate + seed
 npm run build
@@ -20,12 +21,15 @@ npm start
 ## Seed Data
 
 - **Products**: WMS, Roteirização, ERP
-- **Internal user**: admin@example.com / admin123
-- **Customer user**: customer@example.com / customer123
+- **Internal user**: admin@example.com
+- **Customer user**: customer@example.com
+
+Users authenticate via magic link. For local dev without email provider, the API returns
+a preview link in the login response and logs it to the server console.
 
 ## Pages
 
-- `/login` - Email/password login
+- `/login` - Magic link login
 - `/positioning` - Product principles and focus
 - `/problems` - List with filters (product, status, search)
 - `/problems/new` - Submit a problem (requires login)
@@ -35,8 +39,9 @@ npm start
 
 ## API Routes
 
-- `POST /api/auth/request-link` - Login (email + password)
-- `GET /api/auth/callback` - Magic link callback (stub)
+- `POST /api/auth/request-link` - Generate/send magic link
+- `GET /api/auth/callback` - Validate magic link + start session
+- `POST /api/auth/logout` - End session
 - `GET /api/me` - Current user
 - `GET/POST /api/problems` - List/create problems
 - `GET /api/problems/[id]` - Problem detail
@@ -44,3 +49,4 @@ npm start
 - `GET /api/roadmap` - Public roadmap
 - `POST /api/admin/roadmap` - Add roadmap item (internal)
 - `POST /api/admin/problems/[id]/status` - Update status (internal)
+- `POST /api/admin/problems/[id]/merge` - Merge duplicate problem into target (internal)

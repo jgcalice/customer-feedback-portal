@@ -27,13 +27,19 @@ export default function AdminPage() {
   const [roadmap, setRoadmap] = useState<RoadmapItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [roadmapForm, setRoadmapForm] = useState({
     productId: "",
     title: "",
     description: "",
     status: "planned",
   });
+  const [mergeForm, setMergeForm] = useState({
+    targetProblemId: "",
+    duplicateProblemId: "",
+  });
   const [submitting, setSubmitting] = useState(false);
+  const [mergeSubmitting, setMergeSubmitting] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -52,14 +58,23 @@ export default function AdminPage() {
       })
       .then((result) => {
         if (!result) return;
-        const [problems, products, roadmapData] = result;
-        setProblems(problems);
-        setProducts(products);
+        const [problemsData, productsData, roadmapData] = result;
+        setProblems(problemsData);
+        setProducts(productsData);
         const items: RoadmapItem[] = [];
         Object.values(roadmapData as Record<string, RoadmapItem[]>).forEach(
           (arr) => items.push(...arr)
         );
         setRoadmap(items);
+        setRoadmapForm((prev) => ({
+          ...prev,
+          productId: prev.productId || productsData[0]?.id || "",
+        }));
+        setMergeForm((prev) => ({
+          targetProblemId: prev.targetProblemId || problemsData[0]?.id || "",
+          duplicateProblemId:
+            prev.duplicateProblemId || problemsData[1]?.id || "",
+        }));
       })
       .catch((e) => {
         if (e?.message === "Forbidden") return;
@@ -74,6 +89,8 @@ export default function AdminPage() {
 
   async function updateStatus(problemId: string, status: string) {
     try {
+      setError("");
+      setSuccess("");
       const res = await fetch(
         `/api/admin/problems/${problemId}/status`,
         {
@@ -102,6 +119,7 @@ export default function AdminPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
+    setSuccess("");
     try {
       const res = await fetch("/api/admin/roadmap", {
         method: "POST",
@@ -118,6 +136,7 @@ export default function AdminPage() {
       }
       const item = await res.json();
       setRoadmap((prev) => [...prev, item]);
+      setSuccess("Roadmap item added.");
       setRoadmapForm({
         productId: products[0]?.id ?? "",
         title: "",
@@ -131,6 +150,55 @@ export default function AdminPage() {
     }
   }
 
+  async function mergeDuplicateProblems(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    const targetProblemId = mergeForm.targetProblemId;
+    const duplicateProblemId = mergeForm.duplicateProblemId;
+    if (!targetProblemId || !duplicateProblemId) {
+      setError("Select both target and duplicate problem.");
+      return;
+    }
+    if (targetProblemId === duplicateProblemId) {
+      setError("Target and duplicate must be different.");
+      return;
+    }
+
+    setMergeSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/problems/${targetProblemId}/merge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ duplicateProblemId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          router.push("/login");
+          return;
+        }
+        throw new Error(data.error ?? "Failed to merge");
+      }
+
+      setProblems((prev) =>
+        prev
+          .filter((p) => p.id !== data.mergedProblemId)
+          .map((p) => (p.id === data.problem.id ? data.problem : p))
+      );
+      setSuccess("Problems merged successfully.");
+      setMergeForm((prev) => ({
+        ...prev,
+        duplicateProblemId: "",
+      }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to merge");
+    } finally {
+      setMergeSubmitting(false);
+    }
+  }
+
   if (loading) return <p className="text-zinc-600">Loading...</p>;
 
   return (
@@ -141,6 +209,7 @@ export default function AdminPage() {
       </p>
 
       {error && <p className="mb-4 text-red-600">{error}</p>}
+      {success && <p className="mb-4 text-emerald-700">{success}</p>}
 
       <section className="mb-8">
         <h2 className="mb-4 text-lg font-semibold">Add Roadmap Item</h2>
@@ -241,6 +310,61 @@ export default function AdminPage() {
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-4 text-lg font-semibold">Merge Duplicates</h2>
+        {problems.length < 2 ? (
+          <p className="text-zinc-600">
+            Need at least two problems to run a merge.
+          </p>
+        ) : (
+          <form
+            onSubmit={mergeDuplicateProblems}
+            className="flex flex-wrap gap-4 rounded-lg border bg-white p-4"
+          >
+            <select
+              value={mergeForm.targetProblemId}
+              onChange={(e) =>
+                setMergeForm({ ...mergeForm, targetProblemId: e.target.value })
+              }
+              required
+              className="rounded border border-zinc-300 px-3 py-2"
+            >
+              <option value="">Target problem (keep)</option>
+              {problems.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+            <select
+              value={mergeForm.duplicateProblemId}
+              onChange={(e) =>
+                setMergeForm({
+                  ...mergeForm,
+                  duplicateProblemId: e.target.value,
+                })
+              }
+              required
+              className="rounded border border-zinc-300 px-3 py-2"
+            >
+              <option value="">Duplicate problem (remove)</option>
+              {problems.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              disabled={mergeSubmitting}
+              className="rounded bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+            >
+              {mergeSubmitting ? "Merging..." : "Merge"}
+            </button>
+          </form>
         )}
       </section>
 
