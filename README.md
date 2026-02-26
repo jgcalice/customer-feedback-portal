@@ -1,179 +1,255 @@
 # jgcalice-agents
 
-A senior tech-team of AI agents (tech-lead, backend, frontend, mobile, architect, QA, DevOps, designer, PM, security) you can use to build any digital product. Use this repo as the starting point for **any application** — for example, a **calendar assistant**, a marketplace, a SaaS, or a mobile app.
+A framework of **10 senior AI agents** you can run as a collaborative team inside Claude Code, OpenClaw, or Cursor. Give it a product plan and it spins up a full tech team — tech-lead, backend, frontend, mobile, architect, QA, DevOps, designer, PM, security — each with 20+ years of encoded experience, working in parallel.
+
+**This is not a runnable application.** It's agent definitions that you load into your AI environment to give yourself a senior tech team.
+
+---
+
+## Prerequisites
+
+| Requirement | Install |
+|---|---|
+| **Claude Code CLI** | `npm install -g @anthropic-ai/claude-code` |
+| **Anthropic API key** | [console.anthropic.com](https://console.anthropic.com) → set `ANTHROPIC_API_KEY` |
+| **tmux** (for split-pane agent teams) | macOS: `brew install tmux` · Ubuntu/Debian: `sudo apt install tmux` · Windows: use WSL then `sudo apt install tmux` |
+| **git** | Likely already installed |
+
+> **iTerm2 alternative** — if you're on macOS with iTerm2, install the [`it2` CLI](https://github.com/mkusaka/it2) and enable the Python API in iTerm2 → Settings → General → Magic. You can use iTerm2 instead of tmux.
+
+---
+
+## Quick Start — Claude Code Agent Teams (primary path)
+
+Agent teams are the most powerful way to use this repo. Multiple Claude Code sessions work in parallel, share a task list, and talk to each other.
+
+### Step 1 — Clone the repo
+
+```bash
+git clone https://github.com/jgcalice/jgcalice-agents.git
+cd jgcalice-agents
+```
+
+### Step 2 — Enable agent teams
+
+Agent teams are experimental and disabled by default. Copy the example config:
+
+```bash
+mkdir -p .claude
+cp .claude/settings.json.example .claude/settings.json
+```
+
+The example config enables agent teams and sets tmux as the display mode. If you prefer in-process mode (single terminal, use Shift+Down to cycle agents), edit `.claude/settings.json` and change `"teammateMode"` to `"in-process"`.
+
+### Step 3 — Open Claude Code inside the repo
+
+```bash
+claude
+```
+
+> Make sure you're in the `jgcalice-agents` root when you run `claude`. All agents load project context from this directory.
+
+### Step 4 — Build the Calendar Assistant example
+
+Type this into Claude Code:
+
+```
+/build examples/calendar-assistant-plan.md
+```
+
+The `/build` skill (at `skills/build/SKILL.md`) will:
+1. Read the plan and extract what to build
+2. Select the right agents from the roster
+3. Define API contracts between agents (contract-first)
+4. Create a shared task list
+5. Spawn all agents in parallel using tmux split panes
+6. Monitor, relay messages, and coordinate until done
+
+### Step 5 — What to expect
+
+- Your terminal splits into panes — one per agent (backend, frontend, mobile, etc.)
+- Each agent reads its identity (`SOUL.md`), communication protocols (`AGENTS.md`), and playbooks (`SKILL.md`)
+- Agents self-claim tasks from the shared list and message each other directly
+- The tech-lead coordinates and synthesizes; you can message any agent directly with Shift+Down
+- When all tasks are done, the lead cleans up and returns control to you
+
+> **Token cost note**: Agent teams use 2–4× more tokens than a single session. For a full-stack build like the calendar assistant, budget accordingly. For smaller tasks, use 3 agents instead of the full 10.
+
+### Interacting with the team
+
+```
+# Navigate between agents (in-process mode)
+Shift+Down          — cycle to next agent
+Escape              — interrupt current turn
+
+# Navigate between tmux panes
+Ctrl+B, arrow key   — move between panes
+Ctrl+B, z           — zoom into one pane
+
+# Task list
+Ctrl+T              — toggle task list view
+
+# Direct instructions
+Click a pane (split mode) or Shift+Down to a teammate, then type directly
+```
+
+---
+
+## Quick Start — Cursor
+
+1. Clone the repo (same as above)
+2. Open your project in Cursor
+3. Rules in `rules/` auto-activate based on file context — no config needed:
+   - Editing `*.test.*` files? The QA rule activates
+   - Editing `Dockerfile` or CI config? The DevOps rule activates
+   - Editing component files? The Frontend rule activates
+4. Invoke a specific role manually: open the Cursor chat, type `@rules/backend.md` (or any other rule file) to bring that agent's expertise into context
+
+---
+
+## Quick Start — OpenClaw
+
+1. Clone the repo
+2. Open [OpenClaw](https://docs.openclaw.ai/) and import this repo
+3. The `openclaw-config.json5` file at the root configures agent routing automatically
+4. Start a conversation — OpenClaw will route to the right agent based on your message
 
 ---
 
 ## The Team
 
-| Role | Focus |
-|---|---|
-| **Tech-lead** | Breaks down the product into workstreams, assigns tasks, tracks progress. |
-| **Product Manager** | Discovery, outcomes, roadmap, and prioritization. |
-| **Architect** | System design, APIs, and technical strategy. |
-| **Backend** | APIs, data models, business logic, integrations. |
-| **Frontend** | Web UI, state management, and UX. |
-| **Mobile** | Native or cross-platform mobile apps. |
-| **Designer** | UX/UI, flows, and visual consistency. |
-| **QA** | Test strategy, automation, and quality gates. |
-| **DevOps** | CI/CD, environments, observability, and deployment. |
-| **Security** | Threat modelling, auth, input validation, compliance. |
+| Agent | Identity | Communication | Playbook | When to use |
+|---|---|---|---|---|
+| **tech-lead** | [SOUL](agents/tech-lead/SOUL.md) | [AGENTS](agents/tech-lead/AGENTS.md) | [SKILL](agents/tech-lead/skills/tech-lead/SKILL.md) | Always — lead orchestrator |
+| **backend** | [SOUL](agents/backend/SOUL.md) | [AGENTS](agents/backend/AGENTS.md) | [SKILL](agents/backend/skills/backend/SKILL.md) | APIs, databases, business logic |
+| **frontend** | [SOUL](agents/frontend/SOUL.md) | [AGENTS](agents/frontend/AGENTS.md) | [SKILL](agents/frontend/skills/frontend/SKILL.md) | Web UI, dashboards, forms |
+| **mobile** | [SOUL](agents/mobile/SOUL.md) | [AGENTS](agents/mobile/AGENTS.md) | [SKILL](agents/mobile/skills/mobile/SKILL.md) | iOS/Android, offline-first |
+| **architect** | [SOUL](agents/architect/SOUL.md) | [AGENTS](agents/architect/AGENTS.md) | [SKILL](agents/architect/skills/architect/SKILL.md) | System design, ADRs, scaling |
+| **qa** | [SOUL](agents/qa/SOUL.md) | [AGENTS](agents/qa/AGENTS.md) | [SKILL](agents/qa/skills/qa/SKILL.md) | Always — test strategy, automation |
+| **devops** | [SOUL](agents/devops/SOUL.md) | [AGENTS](agents/devops/AGENTS.md) | [SKILL](agents/devops/skills/devops/SKILL.md) | CI/CD, infra, observability |
+| **designer** | [SOUL](agents/designer/SOUL.md) | [AGENTS](agents/designer/AGENTS.md) | [SKILL](agents/designer/skills/designer/SKILL.md) | UX/UI, flows, design system |
+| **pm** | [SOUL](agents/pm/SOUL.md) | [AGENTS](agents/pm/AGENTS.md) | [SKILL](agents/pm/skills/pm/SKILL.md) | Discovery, specs, roadmap |
+| **security** | [SOUL](agents/security/SOUL.md) | [AGENTS](agents/security/AGENTS.md) | [SKILL](agents/security/skills/security/SKILL.md) | Auth, threat model, compliance |
 
 ---
 
-## Worked Example: Calendar Assistant
+## How It Works
 
-> See the full build plan in [`examples/calendar-assistant-plan.md`](examples/calendar-assistant-plan.md).
+The key is **contract-first spawning**. The tech-lead:
 
-### What We're Building
+1. Reads your plan and extracts components and their dependencies
+2. Authors integration contracts upfront (exact API URLs, JSON shapes, data models) — before any agent writes code
+3. Spawns all agents in parallel, each with their contract to produce AND the contracts they consume
+4. Agents build simultaneously to agreed interfaces — no guessing, minimal integration mismatches
 
-A calendar application with **natural language event creation**, recurring events, timezone support, and multi-provider sync (Google Calendar, Outlook). Users say *"Lunch with Ana tomorrow at noon"* and the event is created, synced, and available offline on mobile.
+This is what makes the team work at senior level: agents don't start with a blank slate. Each loads its `SOUL.md` (identity and quality bar), `AGENTS.md` (how to communicate), and `SKILL.md` (operational playbooks for their domain).
 
-### Why
-
-Most calendar apps treat event creation as a form. We treat it as a conversation. The Calendar Assistant understands natural language, handles timezone complexity transparently, and works offline on mobile — syncing seamlessly when connectivity returns.
-
-### Stack
-
-| Layer | Technology |
-|---|---|
-| **Frontend** | Next.js 15 (App Router) + shadcn/ui + Tailwind CSS |
-| **Backend** | Python FastAPI + SQLite (aiosqlite) + Pydantic |
-| **Mobile** | React Native (Expo) + Expo SQLite (offline) + Expo Notifications |
-| **Auth** | OAuth 2.0 (Google Calendar API, Microsoft Graph API) |
-| **NL Processing** | Claude API — natural language → structured event |
-
-### How the Team Collaborates
-
-```
-PM  ──► defines outcomes, user problems, success metrics
-  │
-  └──► Tech-lead  ──► breaks product into workstreams
-           │
-           ├──► Architect   ──► calendar data model, sync strategy, external APIs
-           ├──► Backend     ──► events CRUD, availability, reminders, webhooks
-           ├──► Frontend    ──► month/week/day views, NL input bar, drag-and-drop
-           ├──► Mobile      ──► offline-first, push notifications, deep links
-           ├──► Designer    ──► scheduling flows, event modals, empty states
-           ├──► QA          ──► NL parsing tests, recurrence edge cases, offline scenarios
-           ├──► DevOps      ──► deploy, environments, monitoring
-           └──► Security    ──► OAuth flow, input sanitisation, rate limiting
-```
-
-### Key Components
-
-**Database**
-- `events` — id, title, start_at (UTC), end_at (UTC), timezone, recurrence_rule, provider_id
-- `recurrence_exceptions` — skip or modify individual occurrences in a series
-- `users` — default_timezone, connected providers
-- `sync_log` — bidirectional sync history per provider
-
-**Backend API**
-```
-POST   /api/events/         Create event (accepts NL text OR structured JSON)
-GET    /api/events/         List events (query: start, end, timezone)
-GET    /api/events/{id}     Get event with recurrence expansion
-PUT    /api/events/{id}     Update event
-DELETE /api/events/{id}     Delete event (single or full series)
-POST   /api/events/parse    Parse natural language → structured event JSON
-POST   /api/sync/{provider} Trigger sync with external calendar
-GET    /api/health          Health check
-```
-
-**Frontend (Web)**
-- Month / week / day views — switchable
-- Natural language input bar — always visible at the top
-- Drag-and-drop to reschedule events
-- Event detail modal (create / edit / delete)
-- Settings: timezone, connected providers, notification preferences
-
-**Mobile App**
-- Same views optimised for touch
-- Offline-first: events stored locally, synced on reconnect
-- Push notifications: 15 min before event (configurable)
-- Swipe gestures: left to delete, right to edit
-
-### Acceptance Criteria
-
-1. **NL event creation** — *"Lunch with Ana tomorrow at noon at Pasta Place"* → event created with correct date, time, title, and location.
-2. **Recurring events** — *"Team standup every weekday at 9am"* → Mon-Fri recurrence rule; individual occurrences can be skipped.
-3. **Timezone handling** — São Paulo user sees 14:00 BRT; same event stored as 17:00 UTC; NYC collaborator sees 13:00 EST.
-4. **Offline mobile** — create event offline → saved locally → synced on reconnect → no duplicates.
-5. **Multi-provider sync** — Google Calendar events appear in the app; events created in the app appear in Google Calendar (bidirectional).
-6. **Drag-and-drop** — drag event from Monday to Wednesday → API call triggered, database updated, sync triggered.
-7. **Performance** — API p95 < 200 ms; initial web load < 3 s; mobile cold start < 2 s.
-8. **Accessibility** — keyboard-navigable, screen reader support, WCAG AA contrast.
-
-### Quick Validation
-
-```bash
-# Backend — start server
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-# Health check
-curl -s http://localhost:8000/api/health | jq .
-
-# Create event via natural language
-curl -s -X POST http://localhost:8000/api/events/ \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Lunch tomorrow at noon"}' | jq .
-
-# Parse NL without creating
-curl -s -X POST http://localhost:8000/api/events/parse \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Team standup every weekday at 9am"}' | jq .
-
-# Frontend — TypeScript check + build
-cd frontend && npx tsc --noEmit && npm run build
-
-# Mobile — start Expo dev server
-cd mobile && npx expo start
-```
+Read the full build orchestration guide at [`skills/build/SKILL.md`](skills/build/SKILL.md).
 
 ---
 
-## Using This Repo for Any Application
+## Example: Calendar Assistant
 
-Replace *"calendar assistant"* with your own idea (task manager, booking system, marketplace, learning platform) and follow the same flow:
+A smart calendar app with natural language event creation, recurring events, timezone support, and bidirectional Google Calendar / Outlook sync. Mobile-first with offline support.
 
-1. **Define the product** in one sentence — what it does, who it's for, and what outcome it delivers.
-2. **Start with PM or Tech-lead** — scope, user problems, success metrics, and workstreams.
-3. **Hand off to specialists** — each agent owns their layer; the Tech-lead coordinates.
-4. **Ship** — DevOps handles deploy, QA sets quality gates, Security signs off on auth and data handling.
+**Full plan:** [`examples/calendar-assistant-plan.md`](examples/calendar-assistant-plan.md)
+
+**Run it:**
+```
+/build examples/calendar-assistant-plan.md
+```
+
+**Team the plan spawns:** backend, frontend, mobile, architect, QA, DevOps, designer, security (+ tech-lead coordinating)
+
+---
+
+## Build Your Own Product
+
+1. **Write a plan** — use `examples/calendar-assistant-plan.md` as a template. Include: what you're building, stack, components, dependencies, acceptance criteria.
+
+2. **Run the build skill:**
+   ```
+   /build path/to/your-plan.md
+   ```
+
+3. **Optionally specify team size:**
+   ```
+   /build path/to/your-plan.md 4
+   ```
+   Limits the team to 4 agents (tech-lead always included). Useful for smaller features or when managing token cost.
+
+4. **Let the team work** — watch agents coordinate in real time. Redirect any agent directly if needed.
 
 ---
 
 ## Repo Structure
 
 ```
-agents/          Role-specific agents (AGENTS.md, SOUL.md, skills, tasks)
-  ├── architect/
-  ├── backend/
-  ├── designer/
-  ├── devops/
-  ├── frontend/
-  ├── mobile/
-  ├── pm/
-  ├── qa/
-  ├── security/
-  └── tech-lead/
-examples/        Worked build plans (e.g. calendar-assistant-plan.md)
-rules/           Cursor/IDE rules — right role applied by file or context
-skills/          Reusable operational playbooks and checklists
-Claude.md        Project context and references
+jgcalice-agents/
+├── agents/                  Agent definitions
+│   ├── {role}/
+│   │   ├── SOUL.md          Identity, quality bar, decision heuristics
+│   │   ├── AGENTS.md        Communication protocols with other agents
+│   │   ├── USER.md          Who you're helping (fill this in per project)
+│   │   ├── MEMORY.md        Long-term decisions, ADRs, lessons
+│   │   ├── memory/          Daily session notes (YYYY-MM-DD.md)
+│   │   ├── skills/{role}/
+│   │   │   └── SKILL.md     Operational playbooks and templates
+│   │   └── tasks/
+│   │       ├── todo.md      Current task tracking
+│   │       └── lessons.md   Patterns learned from corrections
+│
+├── examples/
+│   └── calendar-assistant-plan.md   Worked build plan (use as template)
+│
+├── rules/                   Cursor rules (auto-activate by file context)
+│   └── {role}.md
+│
+├── skills/
+│   └── build/
+│       └── SKILL.md         /build command — orchestrates full team builds
+│
+├── .claude/
+│   └── settings.json.example  Copy to settings.json to enable agent teams
+│
+├── deprecated/              Files no longer in active use (kept for reference)
+│
+├── openclaw-config.json5    OpenClaw workspace configuration
+├── Claude.md                Project context (loaded by Claude on every session)
+└── README.md                This file
 ```
 
 ---
 
-## Where to Use These Agents
+## Troubleshooting
 
-- **OpenClaw** — import this repo's agents, skills, and rules into your [OpenClaw](https://docs.openclaw.ai/) workspace.
-- **Cursor / IDE** — use the `rules/` definitions and agent files as Cursor rules so the correct role is active for each file or task.
+**Agent teams not appearing after enabling**
+- Check that `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is set in your `.claude/settings.json`
+- Press Shift+Down — teammates may already be running in-process but not visible
+- Verify tmux is installed: `which tmux`
+
+**tmux panes not opening**
+- Ensure you're already inside a tmux session before starting `claude`, OR let Claude create the tmux session itself
+- Alternative: set `"teammateMode": "in-process"` in `.claude/settings.json`
+
+**Permission prompts interrupting agents**
+- Pre-approve common file operations before spawning. In Claude Code: run with `--dangerously-skip-permissions` flag only if you understand the risk, or approve individual operations as they appear
+
+**Agents stopping on errors**
+- Navigate to the stuck agent (Shift+Down or Ctrl+B arrow), read their output, and send them a message with additional context or instructions
+- Spawn a replacement teammate to continue the work if needed
+
+**Orphaned tmux sessions after team cleanup**
+```bash
+tmux ls                          # list all sessions
+tmux kill-session -t <session>   # kill the orphaned one
+```
 
 ---
 
 ## References
 
+- [Claude Code agent teams docs](https://code.claude.com/docs/en/agent-teams)
 - [OpenClaw docs](https://docs.openclaw.ai/)
 - [Anthropic skills (GitHub)](https://github.com/anthropics/skills/tree/main/skills)
 - [Create custom skills (Claude)](https://support.claude.com/en/articles/12512198-how-to-create-custom-skills)
