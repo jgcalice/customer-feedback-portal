@@ -11,7 +11,7 @@ const MAGIC_LINK_SECRET = new TextEncoder().encode(
 );
 const COOKIE_NAME = "feedback_session";
 
-export interface SessionPayload {
+export interface SessionPayload extends JWTPayload {
   userId: string;
   email: string;
   role: string;
@@ -41,7 +41,7 @@ export async function createSession(payload: Omit<SessionPayload, "exp">) {
   });
 }
 
-export interface MagicLinkPayload {
+export interface MagicLinkPayload extends JWTPayload {
   userId: string;
   email: string;
   type: "magic_link";
