@@ -68,13 +68,17 @@ export default function ProblemsPage() {
       const nextCount =
         data?._count?.interests ??
         problem._count.interests + (problem.hasInterest ? -1 : 1);
+      const nextComments = data?._count?.comments ?? problem._count.comments;
       setProblems((prev) =>
         prev.map((item) =>
           item.id === problem.id
             ? {
                 ...item,
                 hasInterest: !problem.hasInterest,
-                _count: { interests: nextCount },
+                _count: {
+                  interests: nextCount,
+                  comments: nextComments,
+                },
               }
             : item
         )
