@@ -18,6 +18,47 @@ npm run build
 npm start
 ```
 
+## Rodando em localhost
+
+### Desenvolvimento (recomendado)
+
+No diretório do projeto:
+
+```bash
+cd examples/customer-feedback-portal
+cp .env.example .env
+npm install
+npm run db:init
+npm run dev
+```
+
+Abra no navegador:
+
+- `http://localhost:3000`
+
+### Produção local (simular deploy)
+
+```bash
+cd examples/customer-feedback-portal
+cp .env.example .env
+npm install
+npm run db:init
+npm run build
+npm start
+```
+
+Abra no navegador:
+
+- `http://localhost:3000`
+
+Se a porta `3000` estiver ocupada, use outra porta:
+
+```bash
+PORT=3100 npm run dev
+# ou
+PORT=3100 npm start
+```
+
 ## Seed Data
 
 - **Products**: WMS, Roteirização, ERP
