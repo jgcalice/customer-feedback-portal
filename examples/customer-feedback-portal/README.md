@@ -44,6 +44,9 @@ UX notes:
 - `/problems` filters persist in URL (shareable links)
 - `/problems` supports pagination (numeric) + page size + sort (recent / interested / commented)
 - optional "Only my interests" filter when logged in
+- server-side persisted problem preferences per user (`/api/me/preferences/problems`)
+- My Workspace saved views (favorite + apply + delete)
+- CSV export from the currently filtered list (`/api/problems/export`)
 - Keyboard-friendly focus states enabled globally
 
 See the complete usage flow: [`WALKTHROUGH.md`](./WALKTHROUGH.md)
@@ -54,7 +57,11 @@ See the complete usage flow: [`WALKTHROUGH.md`](./WALKTHROUGH.md)
 - `GET /api/auth/callback` - Validate magic link + start session
 - `POST /api/auth/logout` - End session
 - `GET /api/me` - Current user
+- `GET/PUT /api/me/preferences/problems` - User-level persisted problem list preferences
+- `GET/POST /api/me/workspace/views` - List/create saved workspace views
+- `PATCH/DELETE /api/me/workspace/views/[id]` - Update/delete a saved view
 - `GET/POST /api/problems` - List/create problems
+- `GET /api/problems/export` - Export current filtered list as CSV
 - `GET /api/problems/[id]` - Problem detail
 - `POST /api/problems/[id]/comments` - Add comment to problem
 - `POST/DELETE /api/problems/[id]/interest` - Me afeta

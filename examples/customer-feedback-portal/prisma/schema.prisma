@@ -20,6 +20,8 @@ model User {
   problems   Problem[]
   interests  Interest[]
   comments   Comment[]
+  preference UserPreference?
+  savedProblemViews SavedProblemView[]
 }
 
 model Product {
@@ -104,4 +106,38 @@ model Comment {
 
   @@index([problemId])
   @@index([userId])
+}
+
+model UserPreference {
+  userId             String  @id
+  problemsProductId  String?
+  problemsStatus     String?
+  problemsSearch     String?
+  problemsSort       String  @default("recent")
+  problemsMineOnly   Boolean @default(false)
+  problemsPageSize   Int     @default(6)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SavedProblemView {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  productId   String?
+  status      String?
+  search      String?
+  sort        String   @default("recent")
+  mineOnly    Boolean  @default(false)
+  pageSize    Int      @default(6)
+  isFavorite  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, isFavorite])
 }

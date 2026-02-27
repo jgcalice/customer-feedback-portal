@@ -54,6 +54,7 @@ Em `/problems`:
 - paginacao com botoes numerados + **Previous / Next**;
 - tamanho de pagina configuravel;
 - filtros sincronizados com URL (link compartilhavel);
+- export CSV da listagem filtrada;
 - acao **Me afeta** direto no card.
 
 Teste rapido:
@@ -65,8 +66,24 @@ Teste rapido:
 
 Resultado esperado:
 - estado preservado pela query string,
+- preferencia de filtros salva no servidor quando autenticado,
 - toasts de feedback em acoes,
 - contadores do card atualizando.
+
+### My Workspace (views salvas)
+
+Na mesma pagina `/problems`:
+
+1. Defina filtros/ordenacao desejados.
+2. Em **My Workspace**, informe um nome e clique **Save current view**.
+3. Marque como favorito quando quiser.
+4. Use **Apply** para reusar a view salva.
+5. Use **Delete** para remover.
+
+Resultado esperado:
+- views persistidas por usuario no servidor,
+- favoritos destacados,
+- aplicacao rapida de filtros prontos.
 
 ---
 
