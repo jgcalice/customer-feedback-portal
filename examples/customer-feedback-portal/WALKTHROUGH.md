@@ -49,16 +49,19 @@ Resultado esperado:
 Em `/problems`:
 
 - filtros: produto, status, busca;
+- filtro opcional "Only my interests" (apos login);
 - ordenacao: recentes, mais interessados, mais comentados;
-- paginacao com **Previous / Next**;
+- paginacao com botoes numerados + **Previous / Next**;
+- tamanho de pagina configuravel;
 - filtros sincronizados com URL (link compartilhavel);
 - acao **Me afeta** direto no card.
 
 Teste rapido:
 1. Filtre por produto.
 2. Mude ordenacao.
-3. Avance pagina.
-4. Recarregue a pagina.
+3. Ajuste tamanho da pagina.
+4. Avance pagina.
+5. Recarregue a pagina.
 
 Resultado esperado:
 - estado preservado pela query string,

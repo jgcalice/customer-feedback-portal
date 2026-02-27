@@ -20,6 +20,10 @@ function parseSort(value: string | null): ProblemSort {
   return "recent";
 }
 
+function parseBoolean(value: string | null) {
+  return value === "1" || value === "true" || value === "yes";
+}
+
 function buildOrderBy(sort: ProblemSort): Prisma.ProblemOrderByWithRelationInput[] {
   if (sort === "most_interested") {
     return [{ interests: { _count: "desc" } }, { createdAt: "desc" }];
@@ -37,13 +41,21 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
     const sort = parseSort(searchParams.get("sort"));
+    const mineOnly = parseBoolean(searchParams.get("mine"));
     const paginated =
       searchParams.get("paginated") === "1" ||
       searchParams.get("paginated") === "true";
     const page = parsePositiveInt(searchParams.get("page"), 1);
     const pageSize = Math.min(parsePositiveInt(searchParams.get("pageSize"), 6), 50);
+    const session = await getSession();
+    if (mineOnly && !session) {
+      return NextResponse.json(
+        { error: "Login required to filter by your interests" },
+        { status: 401 }
+      );
+    }
 
-    const where: Record<string, unknown> = {};
+    const where: Prisma.ProblemWhereInput = {};
     if (productId) where.productId = productId;
     if (status) where.status = status;
     if (search) {
@@ -51,6 +63,11 @@ export async function GET(request: NextRequest) {
         { title: { contains: search } },
         { problemStatement: { contains: search } },
       ];
+    }
+    if (mineOnly && session) {
+      where.interests = {
+        some: { userId: session.userId },
+      };
     }
 
     const orderBy = buildOrderBy(sort);
@@ -79,7 +96,6 @@ export async function GET(request: NextRequest) {
         : {}),
     });
 
-    const session = await getSession();
     let interestMap: Record<string, boolean> = {};
     if (session) {
       const interests = await prisma.interest.findMany({

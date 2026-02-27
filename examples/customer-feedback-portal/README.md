@@ -42,7 +42,8 @@ a preview link in the login response and logs it to the server console.
 UX notes:
 - Inline feedback + toast notifications for key actions
 - `/problems` filters persist in URL (shareable links)
-- `/problems` supports pagination + sort (recent / interested / commented)
+- `/problems` supports pagination (numeric) + page size + sort (recent / interested / commented)
+- optional "Only my interests" filter when logged in
 - Keyboard-friendly focus states enabled globally
 
 See the complete usage flow: [`WALKTHROUGH.md`](./WALKTHROUGH.md)

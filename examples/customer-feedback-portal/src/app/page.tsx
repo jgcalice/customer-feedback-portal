@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 
 export default async function Home() {
-  const [problemCount, roadmapCount, interestCount, recentProblems] = await Promise.all([
+  const [problemCount, roadmapCount, interestCount, recentProblems, statusGroups] = await Promise.all([
     prisma.problem.count(),
     prisma.roadmapItem.count(),
     prisma.interest.count(),
@@ -14,7 +14,14 @@ export default async function Home() {
         _count: { select: { interests: true } },
       },
     }),
+    prisma.problem.groupBy({
+      by: ["status"],
+      _count: { _all: true },
+    }),
   ]);
+  const statusCounts = Object.fromEntries(
+    statusGroups.map((group) => [group.status, group._count._all])
+  );
 
   return (
     <div className="space-y-8">
@@ -53,6 +60,27 @@ export default async function Home() {
           <p className="text-xs uppercase tracking-wide text-zinc-500">Interest marks</p>
           <p className="mt-1 text-3xl font-semibold">{interestCount}</p>
         </article>
+      </section>
+
+      <section className="rounded-lg border bg-white p-6">
+        <h2 className="mb-3 text-lg font-semibold">Quick filters</h2>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { status: "new", label: "New" },
+            { status: "evaluating", label: "Evaluating" },
+            { status: "planned", label: "Planned" },
+            { status: "in_progress", label: "In progress" },
+            { status: "delivered", label: "Delivered" },
+          ].map((item) => (
+            <Link
+              key={item.status}
+              href={`/problems?status=${item.status}`}
+              className="rounded-full border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+            >
+              {item.label} ({statusCounts[item.status] ?? 0})
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section className="rounded-lg border bg-white p-6">

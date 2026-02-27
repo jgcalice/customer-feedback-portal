@@ -7,12 +7,14 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/components/ToastProvider";
 
 type ProblemSort = "recent" | "most_interested" | "most_commented";
+type PaginationToken = number | "left-ellipsis" | "right-ellipsis";
 
 const SORT_OPTIONS: Array<{ value: ProblemSort; label: string }> = [
   { value: "recent", label: "Most recent" },
   { value: "most_interested", label: "Most interested" },
   { value: "most_commented", label: "Most commented" },
 ];
+const PAGE_SIZE_OPTIONS = [6, 12, 24];
 
 type Problem = {
   id: string;
@@ -42,6 +44,16 @@ function parsePage(value: string | null) {
   return parsed;
 }
 
+function parsePageSize(value: string | null) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (!PAGE_SIZE_OPTIONS.includes(parsed)) return 6;
+  return parsed;
+}
+
+function parseBoolean(value: string | null) {
+  return value === "1" || value === "true";
+}
+
 function parseSort(value: string | null): ProblemSort {
   if (value === "most_interested" || value === "most_commented") {
     return value;
@@ -49,9 +61,33 @@ function parseSort(value: string | null): ProblemSort {
   return "recent";
 }
 
+function getPaginationTokens(currentPage: number, totalPages: number): PaginationToken[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, idx) => idx + 1);
+  }
+
+  if (currentPage <= 3) {
+    return [1, 2, 3, 4, "right-ellipsis", totalPages];
+  }
+  if (currentPage >= totalPages - 2) {
+    return [1, "left-ellipsis", totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+
+  return [
+    1,
+    "left-ellipsis",
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    "right-ellipsis",
+    totalPages,
+  ];
+}
+
 export default function ProblemsPage() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -61,7 +97,9 @@ export default function ProblemsPage() {
   const [productId, setProductId] = useState("");
   const [status, setStatus] = useState("");
   const [sort, setSort] = useState<ProblemSort>("recent");
+  const [mineOnly, setMineOnly] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
   const [searchDraft, setSearchDraft] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -80,22 +118,48 @@ export default function ProblemsPage() {
       .then((r) => r.json())
       .then(setProducts)
       .catch(() => setError("Failed to load products"));
+
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((data) => setIsAuthenticated(!!data.user))
+      .catch(() => setIsAuthenticated(false));
   }, []);
 
   useEffect(() => {
     const nextProductId = searchParams.get("productId") ?? "";
     const nextStatus = searchParams.get("status") ?? "";
-    const nextSort = parseSort(searchParams.get("sort"));
+    const nextSortParam = searchParams.get("sort");
+    let nextSort = parseSort(nextSortParam);
+    if (!nextSortParam) {
+      const savedSort = parseSort(window.localStorage.getItem("problems.sort"));
+      nextSort = savedSort;
+    }
     const nextPage = parsePage(searchParams.get("page"));
+    const nextPageSizeParam = searchParams.get("pageSize");
+    let nextPageSize = parsePageSize(nextPageSizeParam);
+    if (!nextPageSizeParam) {
+      nextPageSize = parsePageSize(window.localStorage.getItem("problems.pageSize"));
+    }
     const nextSearch = searchParams.get("search") ?? "";
+    const nextMineOnly = parseBoolean(searchParams.get("mine"));
 
     setProductId(nextProductId);
     setStatus(nextStatus);
     setSort(nextSort);
+    setMineOnly(nextMineOnly);
     setPage(nextPage);
+    setPageSize(nextPageSize);
     setSearchDraft(nextSearch);
     setSearchQuery(nextSearch);
   }, [searchParams]);
+
+  useEffect(() => {
+    window.localStorage.setItem("problems.sort", sort);
+  }, [sort]);
+
+  useEffect(() => {
+    window.localStorage.setItem("problems.pageSize", String(pageSize));
+  }, [pageSize]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -117,8 +181,10 @@ export default function ProblemsPage() {
     if (productId) params.set("productId", productId);
     if (status) params.set("status", status);
     if (searchQuery) params.set("search", searchQuery);
+    if (mineOnly) params.set("mine", "1");
     if (sort !== "recent") params.set("sort", sort);
     if (page > 1) params.set("page", String(page));
+    if (pageSize !== 6) params.set("pageSize", String(pageSize));
 
     const nextQuery = params.toString();
     const currentQuery = searchParams.toString();
@@ -129,7 +195,18 @@ export default function ProblemsPage() {
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
       scroll: false,
     });
-  }, [page, pathname, productId, router, searchParams, searchQuery, sort, status]);
+  }, [
+    mineOnly,
+    page,
+    pageSize,
+    pathname,
+    productId,
+    router,
+    searchParams,
+    searchQuery,
+    sort,
+    status,
+  ]);
 
   useEffect(() => {
     setLoading(true);
@@ -137,13 +214,20 @@ export default function ProblemsPage() {
     const params = new URLSearchParams();
     params.set("paginated", "1");
     params.set("page", String(page));
-    params.set("pageSize", "6");
+    params.set("pageSize", String(pageSize));
     params.set("sort", sort);
     if (productId) params.set("productId", productId);
     if (status) params.set("status", status);
     if (searchQuery) params.set("search", searchQuery);
+    if (mineOnly) params.set("mine", "1");
     fetch(`/api/problems?${params.toString()}`)
-      .then((r) => r.json() as Promise<ProblemsResponse>)
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) {
+          throw new Error(data.error ?? "Failed to load problems");
+        }
+        return data as ProblemsResponse;
+      })
       .then((data) => {
         setProblems(data.items ?? []);
         if (data.meta) {
@@ -153,9 +237,20 @@ export default function ProblemsPage() {
           }
         }
       })
-      .catch(() => setError("Failed to load problems"))
+      .catch((e) => {
+        const message = e instanceof Error ? e.message : "Failed to load problems";
+        setError(message);
+        if (mineOnly && message.toLowerCase().includes("login")) {
+          setMineOnly(false);
+          addToast({
+            tone: "info",
+            title: "Login required",
+            description: "Use login to filter by your own interests.",
+          });
+        }
+      })
       .finally(() => setLoading(false));
-  }, [page, productId, refreshKey, searchQuery, sort, status]);
+  }, [addToast, mineOnly, page, pageSize, productId, refreshKey, searchQuery, sort, status]);
 
   async function toggleInterest(problem: Problem) {
     setError("");
@@ -219,6 +314,7 @@ export default function ProblemsPage() {
   function clearFilters() {
     setProductId("");
     setStatus("");
+    setMineOnly(false);
     setSort("recent");
     setPage(1);
     setSearchDraft("");
@@ -236,6 +332,10 @@ export default function ProblemsPage() {
   );
   const fromItem = meta.total === 0 ? 0 : (meta.page - 1) * meta.pageSize + 1;
   const toItem = meta.total === 0 ? 0 : Math.min(meta.total, meta.page * meta.pageSize);
+  const paginationTokens = useMemo(
+    () => getPaginationTokens(meta.page, meta.totalPages),
+    [meta.page, meta.totalPages]
+  );
 
   return (
     <div>
@@ -273,7 +373,10 @@ export default function ProblemsPage() {
         <select
           id="product-filter"
           value={productId}
-          onChange={(e) => setProductId(e.target.value)}
+          onChange={(e) => {
+            setProductId(e.target.value);
+            setPage(1);
+          }}
           className="rounded border border-zinc-300 px-3 py-2"
         >
           <option value="">All products</option>
@@ -289,7 +392,10 @@ export default function ProblemsPage() {
         <select
           id="status-filter"
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setPage(1);
+          }}
           className="rounded border border-zinc-300 px-3 py-2"
         >
           <option value="">All statuses</option>
@@ -325,6 +431,45 @@ export default function ProblemsPage() {
           {SORT_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
+            </option>
+          ))}
+        </select>
+        <label htmlFor="mine-filter" className="inline-flex items-center gap-2 rounded border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700">
+          <input
+            id="mine-filter"
+            type="checkbox"
+            checked={mineOnly}
+            disabled={!isAuthenticated}
+            onChange={(e) => {
+              setMineOnly(e.target.checked);
+              setPage(1);
+            }}
+          />
+          Only my interests
+        </label>
+        {!isAuthenticated && (
+          <Link
+            href="/login"
+            className="self-center text-sm text-zinc-600 underline hover:text-zinc-800"
+          >
+            Login to enable
+          </Link>
+        )}
+        <label htmlFor="page-size-filter" className="sr-only">
+          Items per page
+        </label>
+        <select
+          id="page-size-filter"
+          value={pageSize}
+          onChange={(e) => {
+            setPageSize(parsePageSize(e.target.value));
+            setPage(1);
+          }}
+          className="rounded border border-zinc-300 px-3 py-2"
+        >
+          {PAGE_SIZE_OPTIONS.map((size) => (
+            <option key={size} value={size}>
+              {size} per page
             </option>
           ))}
         </select>
@@ -401,7 +546,7 @@ export default function ProblemsPage() {
             <p className="text-sm text-zinc-600">
               Showing {fromItem}-{toItem} of {meta.total}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 disabled={meta.page <= 1}
@@ -410,9 +555,31 @@ export default function ProblemsPage() {
               >
                 Previous
               </button>
-              <span className="text-sm text-zinc-700">
-                Page {meta.page} of {meta.totalPages}
-              </span>
+              {paginationTokens.map((token) =>
+                typeof token === "number" ? (
+                  <button
+                    key={token}
+                    type="button"
+                    onClick={() => setPage(token)}
+                    aria-current={token === meta.page ? "page" : undefined}
+                    className={`rounded border px-3 py-1.5 text-sm font-medium ${
+                      token === meta.page
+                        ? "border-zinc-900 bg-zinc-900 text-white"
+                        : "border-zinc-300 text-zinc-700 hover:bg-zinc-100"
+                    }`}
+                  >
+                    {token}
+                  </button>
+                ) : (
+                  <span
+                    key={token}
+                    className="px-1 text-sm text-zinc-500"
+                    aria-hidden="true"
+                  >
+                    ...
+                  </span>
+                )
+              )}
               <button
                 type="button"
                 disabled={meta.page >= meta.totalPages}
