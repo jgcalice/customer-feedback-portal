@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String?
+  role      String   @default("customer") // customer | internal
+  createdAt DateTime @default(now())
+
+  problems   Problem[]
+  interests  Interest[]
+  comments   Comment[]
+  preference UserPreference?
+  savedProblemViews SavedProblemView[]
+}
+
+model Product {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  problems      Problem[]
+  roadmapItems  RoadmapItem[]
+}
+
+model Problem {
+  id              String   @id @default(cuid())
+  productId       String
+  title           String
+  problemStatement String
+  impact          String
+  frequency       String
+  workaround      String?
+  status          String   @default("new") // new | evaluating | planned | in_progress | delivered
+  createdById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdBy User       @relation(fields: [createdById], references: [id])
+  interests Interest[]
+  problemRoadmap ProblemRoadmap[]
+  comments Comment[]
+
+  @@index([productId])
+  @@index([status])
+}
+
+model Interest {
+  id        String   @id @default(cuid())
+  problemId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([problemId, userId])
+  @@index([problemId])
+}
+
+model RoadmapItem {
+  id                  String   @id @default(cuid())
+  productId           String
+  title               String
+  description         String?
+  status              String   @default("planned") // planned | in_progress | delivered
+  targetMonthOrQuarter String?
+  createdAt           DateTime @default(now())
+
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  problemRoadmap ProblemRoadmap[]
+
+  @@index([productId])
+}
+
+model ProblemRoadmap {
+  problemId     String
+  roadmapItemId String
+
+  problem     Problem     @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  roadmapItem RoadmapItem @relation(fields: [roadmapItemId], references: [id], onDelete: Cascade)
+
+  @@id([problemId, roadmapItemId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  problemId String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([problemId])
+  @@index([userId])
+}
+
+model UserPreference {
+  userId             String  @id
+  problemsProductId  String?
+  problemsStatus     String?
+  problemsSearch     String?
+  problemsSort       String  @default("recent")
+  problemsMineOnly   Boolean @default(false)
+  problemsPageSize   Int     @default(6)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SavedProblemView {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  productId   String?
+  status      String?
+  search      String?
+  sort        String   @default("recent")
+  mineOnly    Boolean  @default(false)
+  pageSize    Int      @default(6)
+  isFavorite  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, isFavorite])
+}
