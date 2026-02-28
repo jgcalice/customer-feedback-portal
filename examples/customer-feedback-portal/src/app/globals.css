@@ -1,17 +1,90 @@
 @import "tailwindcss";
+@import "../../styles/tokens.css";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-black: var(--abi-black);
+  --color-white: var(--abi-white);
+  --color-gold: var(--abi-gold);
+  --color-light-gold: var(--abi-light-gold);
+  --color-dark-gold: var(--abi-dark-gold);
+  --color-light-grey: var(--abi-light-grey);
+  --color-dark-grey: var(--abi-dark-grey);
+  --color-red: var(--abi-red);
+  --color-blue: var(--abi-blue);
+  --color-beige: var(--abi-beige);
+  --color-green: var(--abi-green);
+  --color-light-red: var(--abi-light-red);
+  --color-brown: var(--abi-brown);
+  --color-card: var(--card);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-popover: var(--popover);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 2);
+  --radius-xl: calc(var(--radius) * 3);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-2xl: var(--shadow-2xl);
+}
+
+*,
+*::before,
+*::after {
+  border-color: var(--border);
 }
 
 body {
-  background: #f8fafc;
-  color: #18181b;
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
 }
 
 :focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* Accessibility guardrails from Brand World text/background rules */
+.bg-primary,
+.bg-accent,
+.bg-light-gold,
+.bg-dark-gold,
+.bg-light-grey,
+.bg-dark-grey,
+.bg-white,
+[data-bg="gold-gradient"],
+[data-bg="light-surface"] {
+  color: var(--abi-black);
+}
+
+.bg-black,
+[data-bg="black"] {
+  color: var(--abi-white);
+}
+
+.bg-gold-gradient {
+  background: var(--abi-gold-gradient);
+  color: var(--abi-black);
 }

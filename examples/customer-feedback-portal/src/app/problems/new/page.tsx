@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useToast } from "@/components/ToastProvider";
+import { useI18n } from "@/i18n/LocaleProvider";
 
 type Product = { id: string; name: string };
 
@@ -21,6 +22,7 @@ export default function NewProblemPage() {
   });
   const router = useRouter();
   const { addToast } = useToast();
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch("/api/products")
@@ -32,7 +34,7 @@ export default function NewProblemPage() {
           productId: prev.productId || data[0]?.id || "",
         }));
       })
-      .catch(() => setError("Failed to load products"));
+      .catch(() => setError(t("api.internalServerError")));
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -51,22 +53,22 @@ export default function NewProblemPage() {
           router.push("/login");
           return;
         }
-        const message = data.error ?? "Failed to create";
+        const message = data.error ?? t("api.internalServerError");
         setError(message);
-        addToast({ tone: "error", title: "Nao foi possivel enviar", description: message });
+        addToast({ tone: "error", title: t("toast.submitProblemErrorTitle"), description: message });
         return;
       }
       addToast({
         tone: "success",
-        title: "Problema enviado",
-        description: "Seu problema foi registrado com sucesso.",
+        title: t("toast.submitProblemSuccessTitle"),
+        description: t("toast.submitProblemSuccessDesc"),
       });
       router.push(`/problems/${data.id}?created=1`);
       router.refresh();
     } catch {
-      const message = "Something went wrong";
+      const message = t("login.genericError");
       setError(message);
-      addToast({ tone: "error", title: "Erro inesperado", description: message });
+      addToast({ tone: "error", title: t("toast.unexpectedErrorTitle"), description: message });
     } finally {
       setLoading(false);
     }
@@ -74,31 +76,31 @@ export default function NewProblemPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">Submit a Problem</h1>
-      <p className="mb-6 text-zinc-600">
-        Describe the problem with context, impact, and frequency.{" "}
-        <Link href="/login" className="hover:underline">
-          Login
+      <h1 className="mb-6 text-2xl font-bold text-foreground">{t("problemNew.title")}</h1>
+      <p className="mb-6 text-muted-foreground">
+        {t("problemNew.subtitlePrefix")}{" "}
+        <Link href="/login" className="text-primary hover:underline">
+          {t("problemNew.login")}
         </Link>{" "}
-        to submit.
+        {t("problemNew.subtitleSuffix")}
       </p>
 
-      {error && <p className="mb-4 text-red-600">{error}</p>}
+      {error && <p className="mb-4 text-destructive">{error}</p>}
 
       <form
         onSubmit={handleSubmit}
-        className="space-y-4 rounded-lg border bg-white p-6"
+        className="space-y-4 rounded-lg border border-border bg-card p-4 shadow-sm sm:p-6"
       >
         <div>
-          <label className="mb-1 block text-sm font-medium">Product *</label>
+          <label className="mb-1 block text-sm font-medium text-foreground">{t("problemNew.product")}</label>
           <select
             value={form.productId}
             onChange={(e) => setForm({ ...form, productId: e.target.value })}
             required
             aria-label="Product"
-            className="w-full rounded border border-zinc-300 px-3 py-2"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
           >
-            <option value="">Select...</option>
+            <option value="">{t("problemNew.select")}</option>
             {products.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -107,20 +109,20 @@ export default function NewProblemPage() {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">Title *</label>
+          <label className="mb-1 block text-sm font-medium text-foreground">{t("problemNew.titleLabel")}</label>
           <input
             type="text"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             required
             aria-label="Problem title"
-            placeholder="Short description"
-            className="w-full rounded border border-zinc-300 px-3 py-2"
+            placeholder={t("problemNew.titlePlaceholder")}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">
-            Problem statement * (what happens?)
+          <label className="mb-1 block text-sm font-medium text-foreground">
+            {t("problemNew.statement")}
           </label>
           <textarea
             value={form.problemStatement}
@@ -130,12 +132,12 @@ export default function NewProblemPage() {
             required
             rows={3}
             aria-label="Problem statement"
-            className="w-full rounded border border-zinc-300 px-3 py-2"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">
-            Impact * (what does it cost?)
+          <label className="mb-1 block text-sm font-medium text-foreground">
+            {t("problemNew.impact")}
           </label>
           <input
             type="text"
@@ -143,43 +145,43 @@ export default function NewProblemPage() {
             onChange={(e) => setForm({ ...form, impact: e.target.value })}
             required
             aria-label="Impact"
-            placeholder="e.g. Lost time, errors, manual work"
-            className="w-full rounded border border-zinc-300 px-3 py-2"
+            placeholder={t("problemNew.impactPlaceholder")}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">Frequency *</label>
+          <label className="mb-1 block text-sm font-medium text-foreground">{t("problemNew.frequency")}</label>
           <select
             value={form.frequency}
             onChange={(e) => setForm({ ...form, frequency: e.target.value })}
             aria-label="Frequency"
-            className="w-full rounded border border-zinc-300 px-3 py-2"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
           >
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="rarely">Rarely</option>
+            <option value="daily">{t("problemNew.daily")}</option>
+            <option value="weekly">{t("problemNew.weekly")}</option>
+            <option value="monthly">{t("problemNew.monthly")}</option>
+            <option value="rarely">{t("problemNew.rarely")}</option>
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">
-            Workaround (optional)
+          <label className="mb-1 block text-sm font-medium text-foreground">
+            {t("problemNew.workaround")}
           </label>
           <input
             type="text"
             value={form.workaround}
             onChange={(e) => setForm({ ...form, workaround: e.target.value })}
-            placeholder="How do you work around it today?"
+            placeholder={t("problemNew.workaroundPlaceholder")}
             aria-label="Workaround"
-            className="w-full rounded border border-zinc-300 px-3 py-2"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
           />
         </div>
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+          className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 transition-opacity shadow-sm"
         >
-          {loading ? "Submitting..." : "Submit"}
+          {loading ? t("problemNew.submitting") : t("problemNew.submit")}
         </button>
       </form>
     </div>

@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "brand": {
+    "essence": "Premium optimism with disciplined clarity. Product UI must feel trustworthy, direct, and operationally efficient.",
+    "tone": "Confident, concise, and practical. Brand cues are present but never distract from tasks."
+  },
+  "brandWorld": {
+    "sourceOfTruth": "design/brandworld_snapshot.md",
+    "primaryDominance": "Gold gradient + black/white must dominate primary surfaces.",
+    "secondaryUsage": "Secondary palette is accent-only.",
+    "tertiaryUsage": "Tertiary palette reserved for charts/graphs."
+  },
+  "spacing": {
+    "scale": [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48],
+    "unit": "0.25rem",
+    "description": "Use 4/8/12/16 for controls; 24/32 for section spacing; 40/48 only for major page rhythm.",
+    "grid": {
+      "containerMaxWidth": "64rem",
+      "containerPadding": "1rem"
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "sans": "Avantt, Inter, system-ui, sans-serif",
+      "mono": "var(--font-mono)",
+      "serif": "var(--font-serif)"
+    },
+    "fontNotes": {
+      "primary": "Avantt is the target primary typeface.",
+      "fallback": "Inter/system-ui used until licensed Avantt files are dropped.",
+      "todo": "Add @font-face in styles/tokens.css once files exist in public/fonts/avantt."
+    },
+    "scale": {
+      "pageTitle": { "size": "1.875rem", "weight": "700", "lineHeight": "2.25rem" },
+      "sectionTitle": { "size": "1.125rem", "weight": "600", "lineHeight": "1.5rem" },
+      "body": { "size": "1rem", "weight": "400", "lineHeight": "1.5rem" },
+      "bodySmall": { "size": "0.875rem", "weight": "400", "lineHeight": "1.25rem" },
+      "caption": { "size": "0.75rem", "weight": "400", "lineHeight": "1rem" },
+      "label": { "size": "0.875rem", "weight": "500", "lineHeight": "1.25rem" }
+    },
+    "mapping": {
+      "pageTitle": "text-2xl font-bold",
+      "sectionTitle": "text-lg font-semibold",
+      "body": "text-base",
+      "bodySmall": "text-sm",
+      "caption": "text-xs",
+      "label": "text-sm font-medium"
+    }
+  },
+  "colors": {
+    "brandPalette": {
+      "black": "#000000",
+      "white": "#ffffff",
+      "gold": "#e5b611",
+      "lightGold": "#f5e003",
+      "darkGold": "#d1a33c",
+      "lightGrey": "#efefef",
+      "darkGrey": "#c7c7c7",
+      "red": "#921a28",
+      "blue": "#325a6d",
+      "beige": "#d69e77",
+      "green": "#959b7b",
+      "lightRed": "#e88475",
+      "brown": "#3f1f14"
+    },
+    "goldGradient": "linear-gradient(135deg, #f5e003 0%, #e5b611 46%, #d1a33c 100%)",
+    "surfaces": {
+      "background": "var(--background)",
+      "card": "var(--card)",
+      "cardForeground": "var(--card-foreground)",
+      "muted": "var(--muted)",
+      "mutedForeground": "var(--muted-foreground)",
+      "popover": "var(--popover)",
+      "popoverForeground": "var(--popover-foreground)"
+    },
+    "primary": {
+      "DEFAULT": "var(--primary)",
+      "foreground": "var(--primary-foreground)"
+    },
+    "secondary": {
+      "DEFAULT": "var(--secondary)",
+      "foreground": "var(--secondary-foreground)"
+    },
+    "destructive": {
+      "DEFAULT": "var(--destructive)",
+      "foreground": "var(--destructive-foreground)"
+    },
+    "accent": {
+      "DEFAULT": "var(--accent)",
+      "foreground": "var(--accent-foreground)"
+    },
+    "border": "var(--border)",
+    "input": "var(--input)",
+    "ring": "var(--ring)",
+    "foreground": "var(--foreground)"
+  },
+  "radii": {
+    "sm": "calc(var(--radius) * 0.5)",
+    "md": "var(--radius)",
+    "lg": "calc(var(--radius) * 2)",
+    "xl": "calc(var(--radius) * 3)",
+    "full": "9999px"
+  },
+  "shadows": {
+    "sm": "var(--shadow-sm)",
+    "md": "var(--shadow-md)",
+    "lg": "var(--shadow-lg)",
+    "xl": "var(--shadow-xl)",
+    "2xl": "var(--shadow-2xl)"
+  },
+  "iconSizing": {
+    "sm": "1rem",
+    "md": "1.25rem",
+    "lg": "1.5rem"
+  },
+  "interaction": {
+    "hover": "Use subtle background or color transitions only (150ms).",
+    "focus": "Visible focus ring: 2px solid var(--ring), 2px offset. Never remove focus outline.",
+    "pressed": "Slight tonal shift only; no bounce/scale gimmicks.",
+    "motion": "150ms ease for color/opacity. Avoid decorative motion on productivity screens."
+  },
+  "accessibilityRules": {
+    "goldGradientBackground": "Text must be black only.",
+    "blackBackground": "Text must be white, lightGold, or darkGold.",
+    "lightSurfacesBackground": "On lightGrey/darkGold/white/lightGold/darkGrey backgrounds text must be black only."
+  }
+}

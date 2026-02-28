@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useI18n } from "@/i18n/LocaleProvider";
 
 type ToastTone = "success" | "error" | "info";
 
@@ -29,9 +30,9 @@ type ToastContextValue = {
 };
 
 const TOAST_CLASSES: Record<ToastTone, string> = {
-  success: "border-emerald-300 bg-emerald-50 text-emerald-900",
-  error: "border-rose-300 bg-rose-50 text-rose-900",
-  info: "border-sky-300 bg-sky-50 text-sky-900",
+  success: "border-border bg-card text-card-foreground",
+  error: "border-destructive/50 bg-destructive/10 text-destructive",
+  info: "border-border bg-muted text-muted-foreground",
 };
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
@@ -46,6 +47,7 @@ function createToastId() {
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const timersRef = useRef<Map<string, number>>(new Map());
+  const { t } = useI18n();
 
   const removeToast = useCallback((toastId: string) => {
     setToasts((prev) => prev.filter((item) => item.id !== toastId));
@@ -96,10 +98,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <button
                 type="button"
                 onClick={() => removeToast(toast.id)}
-                className="rounded px-2 py-1 text-xs font-semibold hover:bg-white/50"
-                aria-label="Close notification"
+                className="rounded px-2 py-1 text-xs font-semibold hover:bg-background/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors"
+                aria-label={t("toast.closeAria")}
               >
-                Fechar
+                {t("toast.close")}
               </button>
             </div>
           </div>

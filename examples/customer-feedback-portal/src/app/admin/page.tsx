@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/components/ToastProvider";
+import { useI18n } from "@/i18n/LocaleProvider";
 
 type Problem = {
   id: string;
@@ -44,10 +45,13 @@ export default function AdminPage() {
     targetProblemId: "",
     duplicateProblemId: "",
   });
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [savingStatusId, setSavingStatusId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [mergeSubmitting, setMergeSubmitting] = useState(false);
   const router = useRouter();
   const { addToast } = useToast();
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch("/api/me")
@@ -88,16 +92,17 @@ export default function AdminPage() {
         if (e?.message?.includes("403") || e?.message?.includes("401")) {
           router.push("/login");
         } else {
-          setError("Failed to load");
+          setError(t("api.internalServerError"));
         }
       })
       .finally(() => setLoading(false));
-  }, [router]);
+  }, [router, t]);
 
   async function updateStatus(problemId: string, status: string) {
+    setSavingStatusId(problemId);
+    setError("");
+    setSuccess("");
     try {
-      setError("");
-      setSuccess("");
       const res = await fetch(
         `/api/admin/problems/${problemId}/status`,
         {
@@ -111,25 +116,32 @@ export default function AdminPage() {
           router.push("/login");
           return;
         }
-        throw new Error("Failed");
+        throw new Error(t("api.internalServerError"));
       }
       const updated = await res.json();
       setProblems((prev) =>
         prev.map((p) => (p.id === problemId ? updated : p))
       );
-      setSuccess("Problem status updated.");
+      setSuccess(t("toast.statusUpdatedDesc"));
       addToast({
         tone: "success",
-        title: "Status atualizado",
+        title: t("toast.statusUpdatedTitle"),
       });
     } catch {
-      setError("Failed to update status");
+      setError(t("api.internalServerError"));
       addToast({
         tone: "error",
-        title: "Falha ao atualizar status",
+        title: t("toast.statusUpdateErrorTitle"),
       });
+    } finally {
+      setSavingStatusId(null);
     }
   }
+
+  const filteredProblems =
+    statusFilter === ""
+      ? problems
+      : problems.filter((p) => p.status === statusFilter);
 
   async function addRoadmapItem(e: React.FormEvent) {
     e.preventDefault();
@@ -157,14 +169,14 @@ export default function AdminPage() {
           return;
         }
         const data = await res.json();
-        throw new Error(data.error ?? "Failed");
+        throw new Error(data.error ?? t("api.internalServerError"));
       }
       const item = await res.json();
       setRoadmap((prev) => [...prev, item]);
-      setSuccess("Roadmap item added.");
+      setSuccess(t("toast.roadmapItemCreatedDesc"));
       addToast({
         tone: "success",
-        title: "Item de roadmap criado",
+        title: t("toast.roadmapItemCreatedTitle"),
       });
       setRoadmapForm({
         productId: products[0]?.id ?? "",
@@ -175,11 +187,11 @@ export default function AdminPage() {
         relatedProblemId: "",
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed");
+      setError(e instanceof Error ? e.message : t("api.internalServerError"));
       addToast({
         tone: "error",
-        title: "Falha ao criar item de roadmap",
-        description: e instanceof Error ? e.message : "Failed",
+        title: t("toast.roadmapItemErrorTitle"),
+        description: e instanceof Error ? e.message : t("api.internalServerError"),
       });
     } finally {
       setSubmitting(false);
@@ -194,11 +206,11 @@ export default function AdminPage() {
     const targetProblemId = mergeForm.targetProblemId;
     const duplicateProblemId = mergeForm.duplicateProblemId;
     if (!targetProblemId || !duplicateProblemId) {
-      setError("Select both target and duplicate problem.");
+      setError(t("api.duplicateProblemIdRequired"));
       return;
     }
     if (targetProblemId === duplicateProblemId) {
-      setError("Target and duplicate must be different.");
+      setError(t("api.cannotMergeSelf"));
       return;
     }
 
@@ -215,7 +227,7 @@ export default function AdminPage() {
           router.push("/login");
           return;
         }
-        throw new Error(data.error ?? "Failed to merge");
+        throw new Error(data.error ?? t("api.internalServerError"));
       }
 
       setProblems((prev) =>
@@ -223,44 +235,135 @@ export default function AdminPage() {
           .filter((p) => p.id !== data.mergedProblemId)
           .map((p) => (p.id === data.problem.id ? data.problem : p))
       );
-      setSuccess("Problems merged successfully.");
+      setSuccess(t("toast.mergeSuccessDesc"));
       addToast({
         tone: "success",
-        title: "Duplicados consolidados",
+        title: t("toast.mergeSuccessTitle"),
       });
       setMergeForm((prev) => ({
         ...prev,
         duplicateProblemId: "",
       }));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to merge");
+      setError(e instanceof Error ? e.message : t("api.internalServerError"));
       addToast({
         tone: "error",
-        title: "Falha ao mesclar duplicados",
-        description: e instanceof Error ? e.message : "Failed to merge",
+        title: t("toast.mergeErrorTitle"),
+        description: e instanceof Error ? e.message : t("api.internalServerError"),
       });
     } finally {
       setMergeSubmitting(false);
     }
   }
 
-  if (loading) return <p className="text-zinc-600">Loading...</p>;
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-12" aria-busy="true">
+        <div
+          className="h-10 w-10 animate-spin rounded-full border-2 border-border border-t-primary"
+          aria-hidden
+        />
+        <p className="text-muted-foreground">{t("common.loading")}</p>
+      </div>
+    );
+  }
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">Admin</h1>
-      <p className="mb-6 text-zinc-600">
-        Update problem status and manage roadmap. Internal only.
+      <h1 className="mb-2 text-2xl font-bold text-foreground">{t("admin.title")}</h1>
+      <p className="mb-8 text-muted-foreground">
+        {t("admin.subtitle")}
       </p>
 
-      {error && <p className="mb-4 text-red-600">{error}</p>}
-      {success && <p className="mb-4 text-emerald-700" aria-live="polite">{success}</p>}
+      {error && (
+        <p className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
 
-      <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold">Add Roadmap Item</h2>
+      {/* 1. Atualizar status — principal tarefa do admin */}
+      <section className="mb-10">
+        <h2 className="mb-3 text-lg font-semibold text-foreground">{t("admin.updateProblemStatus")}</h2>
+        {problems.length === 0 ? (
+          <p className="rounded-lg border border-border bg-card p-6 text-muted-foreground shadow-sm">
+            {t("admin.noProblemsYet")}
+          </p>
+        ) : (
+          <>
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <label htmlFor="admin-status-filter" className="text-sm font-medium text-foreground">
+                {t("admin.filterByStatus")}
+              </label>
+              <select
+                id="admin-status-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                aria-label={t("admin.filterByStatus")}
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+              >
+                <option value="">{t("admin.allStatuses")}</option>
+                <option value="new">{t("status.new")}</option>
+                <option value="evaluating">{t("status.evaluating")}</option>
+                <option value="planned">{t("status.planned")}</option>
+                <option value="in_progress">{t("status.in_progress")}</option>
+                <option value="delivered">{t("status.delivered")}</option>
+              </select>
+              <span className="text-sm text-muted-foreground">
+                {filteredProblems.length === 1
+                  ? t("admin.showingCount_one")
+                  : t("admin.showingCount_other", { count: filteredProblems.length })}
+              </span>
+            </div>
+            <ul className="space-y-4">
+              {filteredProblems.map((p) => (
+                <li
+                  key={p.id}
+                  className="flex flex-col items-start justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center"
+                >
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/problems/${p.id}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {p.title}
+                    </Link>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {p.product.name} · {p._count.interests} {t("problems.meAffects")}
+                    </p>
+                  </div>
+                  <div className="flex w-full items-center gap-2 sm:w-auto">
+                    <select
+                      value={p.status}
+                      onChange={(e) => updateStatus(p.id, e.target.value)}
+                      disabled={savingStatusId === p.id}
+                      aria-label={`${t("admin.updateProblemStatus")}: ${p.title}`}
+                      className="rounded-md border border-input bg-background px-3 py-2 text-foreground disabled:opacity-70"
+                    >
+                      <option value="new">{t("status.new")}</option>
+                      <option value="evaluating">{t("status.evaluating")}</option>
+                      <option value="planned">{t("status.planned")}</option>
+                      <option value="in_progress">{t("status.in_progress")}</option>
+                      <option value="delivered">{t("status.delivered")}</option>
+                    </select>
+                    {savingStatusId === p.id && (
+                      <span className="text-xs text-muted-foreground" aria-live="polite">
+                        {t("admin.savingStatus")}
+                      </span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
+
+      {/* 2. Adicionar item de roadmap */}
+      <section className="mb-10">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">{t("admin.addRoadmapItem")}</h2>
         <form
           onSubmit={addRoadmapItem}
-          className="flex flex-wrap gap-4 rounded-lg border bg-white p-4"
+          className="grid gap-3 rounded-lg border border-border bg-card p-4 shadow-sm sm:flex sm:flex-wrap sm:gap-4"
         >
           <select
             value={roadmapForm.productId}
@@ -269,9 +372,9 @@ export default function AdminPage() {
             }
             required
             aria-label="Roadmap product"
-            className="rounded border border-zinc-300 px-3 py-2"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground sm:w-auto"
           >
-            <option value="">Product</option>
+            <option value="">{t("admin.product")}</option>
             {products.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -280,28 +383,28 @@ export default function AdminPage() {
           </select>
           <input
             type="text"
-            placeholder="Title"
+            placeholder={t("admin.titleLabel")}
             value={roadmapForm.title}
             onChange={(e) =>
               setRoadmapForm({ ...roadmapForm, title: e.target.value })
             }
             required
             aria-label="Roadmap title"
-            className="rounded border border-zinc-300 px-3 py-2"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground sm:w-auto"
           />
           <input
             type="text"
-            placeholder="Description (optional)"
+            placeholder={t("admin.descriptionOptional")}
             value={roadmapForm.description}
             onChange={(e) =>
               setRoadmapForm({ ...roadmapForm, description: e.target.value })
             }
             aria-label="Roadmap description"
-            className="rounded border border-zinc-300 px-3 py-2"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground sm:w-auto"
           />
           <input
             type="text"
-            placeholder="Target (e.g. 2026-Q2)"
+            placeholder={t("admin.targetPlaceholder")}
             value={roadmapForm.targetMonthOrQuarter}
             onChange={(e) =>
               setRoadmapForm({
@@ -310,7 +413,7 @@ export default function AdminPage() {
               })
             }
             aria-label="Roadmap target"
-            className="rounded border border-zinc-300 px-3 py-2"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground sm:w-auto"
           />
           <select
             value={roadmapForm.status}
@@ -318,11 +421,11 @@ export default function AdminPage() {
               setRoadmapForm({ ...roadmapForm, status: e.target.value })
             }
             aria-label="Roadmap status"
-            className="rounded border border-zinc-300 px-3 py-2"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground sm:w-auto"
           >
-            <option value="planned">Planned</option>
-            <option value="in_progress">In progress</option>
-            <option value="delivered">Delivered</option>
+            <option value="planned">{t("status.planned")}</option>
+            <option value="in_progress">{t("status.in_progress")}</option>
+            <option value="delivered">{t("status.delivered")}</option>
           </select>
           <select
             value={roadmapForm.relatedProblemId}
@@ -330,9 +433,9 @@ export default function AdminPage() {
               setRoadmapForm({ ...roadmapForm, relatedProblemId: e.target.value })
             }
             aria-label="Related problem"
-            className="rounded border border-zinc-300 px-3 py-2"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground sm:w-auto"
           >
-            <option value="">No related problem</option>
+            <option value="">{t("admin.noRelatedProblem")}</option>
             {problems.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.title}
@@ -342,139 +445,109 @@ export default function AdminPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+            className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 transition-opacity shadow-sm"
           >
-            Add
+            {t("admin.add")}
           </button>
         </form>
       </section>
 
-      <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold">Update Problem Status</h2>
-        {problems.length === 0 ? (
-          <p className="text-zinc-600">No problems yet.</p>
-        ) : (
-          <ul className="space-y-4">
-            {problems.map((p) => (
-              <li
-                key={p.id}
-                className="flex items-center justify-between rounded-lg border bg-white p-4"
-              >
-                <div>
-                  <Link
-                    href={`/problems/${p.id}`}
-                    className="font-medium hover:underline"
-                  >
-                    {p.title}
-                  </Link>
-                  <p className="text-sm text-zinc-600">
-                    {p.product.name} · {p._count.interests} me afeta
-                  </p>
-                </div>
-                <select
-                  value={p.status}
-                  onChange={(e) =>
-                    updateStatus(p.id, e.target.value)
-                  }
-                  aria-label={`Status for ${p.title}`}
-                  className="rounded border border-zinc-300 px-3 py-2"
-                >
-                  <option value="new">New</option>
-                  <option value="evaluating">Evaluating</option>
-                  <option value="planned">Planned</option>
-                  <option value="in_progress">In progress</option>
-                  <option value="delivered">Delivered</option>
-                </select>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold">Merge Duplicates</h2>
+      {/* 3. Mesclar duplicados */}
+      <section className="mb-10">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">{t("admin.mergeDuplicates")}</h2>
         {problems.length < 2 ? (
-          <p className="text-zinc-600">
-            Need at least two problems to run a merge.
+          <p className="text-muted-foreground">
+            {t("admin.needAtLeastTwo")}
           </p>
         ) : (
           <form
             onSubmit={mergeDuplicateProblems}
-            className="flex flex-wrap gap-4 rounded-lg border bg-white p-4"
+            className="grid gap-4 rounded-lg border border-border bg-card p-4 shadow-sm sm:grid-cols-2 sm:items-end"
           >
-            <select
-              value={mergeForm.targetProblemId}
-              onChange={(e) =>
-                setMergeForm({ ...mergeForm, targetProblemId: e.target.value })
-              }
-              required
-              aria-label="Target problem"
-              className="rounded border border-zinc-300 px-3 py-2"
-            >
-              <option value="">Target problem (keep)</option>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="merge-target" className="text-sm font-medium text-foreground">
+                {t("admin.targetProblemKeep")}
+              </label>
+              <select
+                id="merge-target"
+                value={mergeForm.targetProblemId}
+                onChange={(e) =>
+                  setMergeForm({ ...mergeForm, targetProblemId: e.target.value })
+                }
+                required
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+              >
+                <option value="">—</option>
               {problems.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.title}
                 </option>
               ))}
             </select>
-            <select
-              value={mergeForm.duplicateProblemId}
-              onChange={(e) =>
-                setMergeForm({
-                  ...mergeForm,
-                  duplicateProblemId: e.target.value,
-                })
-              }
-              required
-              aria-label="Duplicate problem"
-              className="rounded border border-zinc-300 px-3 py-2"
-            >
-              <option value="">Duplicate problem (remove)</option>
-              {problems.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="merge-duplicate" className="text-sm font-medium text-foreground">
+                {t("admin.duplicateProblemRemove")}
+              </label>
+              <select
+                id="merge-duplicate"
+                value={mergeForm.duplicateProblemId}
+                onChange={(e) =>
+                  setMergeForm({
+                    ...mergeForm,
+                    duplicateProblemId: e.target.value,
+                  })
+                }
+                required
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground"
+              >
+                <option value="">—</option>
+                {problems.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title}
+                  </option>
+                ))}
+              </select>
+            </div>
             <button
               type="submit"
               disabled={mergeSubmitting}
-              className="rounded bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+              className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 transition-opacity shadow-sm sm:col-span-2 sm:w-fit"
             >
-              {mergeSubmitting ? "Merging..." : "Merge"}
+              {mergeSubmitting ? t("admin.merging") : t("admin.merge")}
             </button>
           </form>
         )}
       </section>
 
+      {/* 4. Lista de itens de roadmap */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold">Roadmap Items</h2>
+        <h2 className="mb-4 text-lg font-semibold text-foreground">{t("admin.roadmapItems")}</h2>
         {roadmap.length === 0 ? (
-          <p className="text-zinc-600">No roadmap items yet.</p>
+          <p className="text-muted-foreground">{t("admin.noRoadmapItemsYet")}</p>
         ) : (
           <ul className="space-y-2">
             {roadmap.map((r) => (
               <li
                 key={r.id}
-                className="rounded border bg-white p-3"
+                className="rounded-md border border-border bg-card p-3 shadow-sm"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-medium">
-                    {r.title} <span className="text-zinc-500">({r.product.name})</span>
+                    {r.title} <span className="text-muted-foreground">({r.product.name})</span>
                   </p>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={r.status} />
                     {r.targetMonthOrQuarter && (
-                      <span className="text-xs text-zinc-500">
+                      <span className="text-xs text-muted-foreground">
                         {r.targetMonthOrQuarter}
                       </span>
                     )}
                   </div>
                 </div>
                 {r.problemRoadmap && r.problemRoadmap.length > 0 && (
-                  <p className="mt-2 text-sm text-zinc-600">
-                    Related:{" "}
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {t("common.related")}{" "}
                     {r.problemRoadmap.map((item) => item.problem.title).join(", ")}
                   </p>
                 )}

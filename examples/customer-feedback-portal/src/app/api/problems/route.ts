@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireAuth, getSession } from "@/lib/auth";
+import { getI18nServer } from "@/i18n/server";
 
 type ProblemSort = "recent" | "most_interested" | "most_commented";
 
@@ -36,6 +37,7 @@ function buildOrderBy(sort: ProblemSort): Prisma.ProblemOrderByWithRelationInput
 
 export async function GET(request: NextRequest) {
   try {
+    const { t } = await getI18nServer();
     const { searchParams } = request.nextUrl;
     const productId = searchParams.get("productId");
     const status = searchParams.get("status");
@@ -50,7 +52,7 @@ export async function GET(request: NextRequest) {
     const session = await getSession();
     if (mineOnly && !session) {
       return NextResponse.json(
-        { error: "Login required to filter by your interests" },
+        { error: t("api.loginRequiredMineFilter") },
         { status: 401 }
       );
     }
@@ -133,7 +135,7 @@ export async function GET(request: NextRequest) {
   } catch (e) {
     console.error(e);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: (await getI18nServer()).t("api.internalServerError") },
       { status: 500 }
     );
   }
@@ -141,6 +143,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { t } = await getI18nServer();
     const session = await requireAuth();
     const body = await request.json();
     const { productId, title, problemStatement, impact, frequency, workaround } =
@@ -148,7 +151,7 @@ export async function POST(request: NextRequest) {
 
     if (!productId || !title || !problemStatement || !impact || !frequency) {
       return NextResponse.json(
-        { error: "productId, title, problemStatement, impact, frequency required" },
+        { error: t("api.requiredProblemFields") },
         { status: 400 }
       );
     }
@@ -172,11 +175,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(problem);
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: (await getI18nServer()).t("api.unauthorized") }, { status: 401 });
     }
     console.error(e);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: (await getI18nServer()).t("api.internalServerError") },
       { status: 500 }
     );
   }

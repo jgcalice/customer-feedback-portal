@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { getI18nServer } from "@/i18n/server";
 
 type ProblemSort = "recent" | "most_interested" | "most_commented";
 
@@ -40,6 +41,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { t } = await getI18nServer();
     const session = await requireAuth();
     const { id } = await params;
 
@@ -47,7 +49,7 @@ export async function PATCH(
       where: { id, userId: session.userId },
     });
     if (!existing) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: t("api.notFound") }, { status: 404 });
     }
 
     const body = await request.json();
@@ -56,7 +58,7 @@ export async function PATCH(
     if (body.name !== undefined) {
       const name = normalizeName(body.name);
       if (!name) {
-        return NextResponse.json({ error: "name cannot be empty" }, { status: 400 });
+        return NextResponse.json({ error: t("api.nameCannotBeEmpty") }, { status: 400 });
       }
       data.name = name;
     }
@@ -90,11 +92,11 @@ export async function PATCH(
     return NextResponse.json(updated);
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: (await getI18nServer()).t("api.unauthorized") }, { status: 401 });
     }
     console.error(e);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: (await getI18nServer()).t("api.internalServerError") },
       { status: 500 }
     );
   }
@@ -105,6 +107,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { t } = await getI18nServer();
     const session = await requireAuth();
     const { id } = await params;
 
@@ -112,17 +115,17 @@ export async function DELETE(
       where: { id, userId: session.userId },
     });
     if (result.count === 0) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: t("api.notFound") }, { status: 404 });
     }
 
     return NextResponse.json({ ok: true });
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: (await getI18nServer()).t("api.unauthorized") }, { status: 401 });
     }
     console.error(e);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: (await getI18nServer()).t("api.internalServerError") },
       { status: 500 }
     );
   }

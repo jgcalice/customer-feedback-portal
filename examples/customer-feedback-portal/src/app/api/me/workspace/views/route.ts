@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { getI18nServer } from "@/i18n/server";
 
 type ProblemSort = "recent" | "most_interested" | "most_commented";
 
@@ -46,11 +47,11 @@ export async function GET() {
     return NextResponse.json({ views });
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: (await getI18nServer()).t("api.unauthorized") }, { status: 401 });
     }
     console.error(e);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: (await getI18nServer()).t("api.internalServerError") },
       { status: 500 }
     );
   }
@@ -58,12 +59,13 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const { t } = await getI18nServer();
     const session = await requireAuth();
     const body = await request.json();
     const name = normalizeName(body.name);
 
     if (!name) {
-      return NextResponse.json({ error: "name is required" }, { status: 400 });
+      return NextResponse.json({ error: t("api.nameRequired") }, { status: 400 });
     }
 
     const view = await prisma.savedProblemView.create({
@@ -83,11 +85,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(view);
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: (await getI18nServer()).t("api.unauthorized") }, { status: 401 });
     }
     console.error(e);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: (await getI18nServer()).t("api.internalServerError") },
       { status: 500 }
     );
   }

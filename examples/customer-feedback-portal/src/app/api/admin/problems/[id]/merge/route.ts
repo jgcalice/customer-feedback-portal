@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireInternal } from "@/lib/auth";
+import { getI18nServer } from "@/i18n/server";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { t } = await getI18nServer();
   try {
     await requireInternal();
     const { id: targetProblemId } = await params;
@@ -14,13 +16,13 @@ export async function POST(
 
     if (!duplicateProblemId) {
       return NextResponse.json(
-        { error: "duplicateProblemId required" },
+        { error: t("api.duplicateProblemIdRequired") },
         { status: 400 }
       );
     }
     if (duplicateProblemId === targetProblemId) {
       return NextResponse.json(
-        { error: "Cannot merge a problem into itself" },
+        { error: t("api.cannotMergeSelf") },
         { status: 400 }
       );
     }
@@ -128,20 +130,26 @@ export async function POST(
     });
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("api.unauthorized") }, { status: 401 });
     }
     if (e instanceof Error && e.message === "Forbidden") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: t("api.forbidden") }, { status: 403 });
     }
     if (e instanceof Error && e.message === "TARGET_NOT_FOUND") {
-      return NextResponse.json({ error: "Target problem not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: t("api.targetProblemNotFound") },
+        { status: 404 }
+      );
     }
     if (e instanceof Error && e.message === "DUPLICATE_NOT_FOUND") {
-      return NextResponse.json({ error: "Duplicate problem not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: t("api.duplicateProblemNotFound") },
+        { status: 404 }
+      );
     }
     console.error(e);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: t("api.internalServerError") },
       { status: 500 }
     );
   }

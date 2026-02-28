@@ -14,6 +14,21 @@ npm run dev
 
 Abra `http://localhost:3000`.
 
+### Troubleshooting — porta em uso ou lock do Next.js
+
+Se aparecer **"Port 3000 is in use"** ou **"Unable to acquire lock at ... .next/dev/lock"**:
+
+1. Feche qualquer terminal onde `npm run dev` esteja rodando (Ctrl+C).
+2. No PowerShell, libere a porta 3000:
+   ```powershell
+   Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
+   ```
+3. Se o aviso de lock continuar, apague a pasta `.next` e suba de novo:
+   ```powershell
+   Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
+   npm run dev
+   ```
+
 ---
 
 ## 2) Fluxo de Login (magic link)

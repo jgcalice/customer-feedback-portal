@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useToast } from "@/components/ToastProvider";
+import { useI18n } from "@/i18n/LocaleProvider";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,14 +14,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
   const { addToast } = useToast();
+  const { t } = useI18n();
   const notifiedErrorRef = useRef("");
   const callbackError = useMemo(() => {
     const value = searchParams.get("error");
     if (value === "invalid_link") {
-      return "Magic link invalido ou expirado. Solicite um novo.";
+      return t("login.invalidLink");
     }
     if (value === "missing_link") {
-      return "Link de login incompleto. Solicite um novo.";
+      return t("login.missingLink");
     }
     return "";
   }, [searchParams]);
@@ -29,7 +31,7 @@ export default function LoginPage() {
     if (callbackError && notifiedErrorRef.current !== callbackError) {
       addToast({
         tone: "error",
-        title: "Falha no login",
+        title: t("toast.loginFailedTitle"),
         description: callbackError,
       });
       notifiedErrorRef.current = callbackError;
@@ -50,69 +52,77 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        const message = data.error ?? "Login failed";
+        const message = data.error ?? t("toast.loginFailedTitle");
         setError(message);
-        addToast({ tone: "error", title: "Nao foi possivel enviar o link", description: message });
+        addToast({ tone: "error", title: t("toast.sendLinkFailedTitle"), description: message });
         return;
       }
       const successMessage = data.sentByEmail
-        ? "Enviamos o link magico para seu e-mail."
-        : "Link magico gerado. Use o link abaixo (ambiente de desenvolvimento).";
+        ? t("api.magicLinkGenerated")
+        : t("api.magicLinkGenerated");
       setSuccess(
         successMessage
       );
-      addToast({ tone: "success", title: "Link enviado", description: successMessage });
+      addToast({ tone: "success", title: t("toast.linkSentTitle"), description: successMessage });
       if (typeof data.magicLink === "string") {
         setMagicLink(data.magicLink);
       }
     } catch {
-      const message = "Something went wrong";
+      const message = t("login.genericError");
       setError(message);
-      addToast({ tone: "error", title: "Erro inesperado", description: message });
+      addToast({ tone: "error", title: t("toast.unexpectedErrorTitle"), description: message });
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="mx-auto max-w-sm">
-      <h1 className="mb-2 text-2xl font-bold">Login</h1>
-      <p className="mb-6 text-sm text-zinc-600">
-        Digite seu e-mail para receber um link magico de acesso.
+    <div className="mx-auto w-full max-w-sm sm:max-w-md">
+      <h1 className="mb-2 text-2xl font-bold text-foreground">{t("login.title")}</h1>
+      <p className="mb-6 text-sm text-muted-foreground">
+        {t("login.subtitle")}
       </p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
-          <label className="mb-1 block text-sm font-medium">Email</label>
+          <label className="mb-1 block text-sm font-medium text-foreground">{t("login.email")}</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             aria-label="Email for magic link login"
-            className="w-full rounded border border-zinc-300 px-3 py-2"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
-        {callbackError && <p className="text-sm text-red-600">{callbackError}</p>}
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {success && <p className="text-sm text-emerald-700">{success}</p>}
+        {callbackError && <p className="text-sm text-destructive">{callbackError}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        {success && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm text-foreground" role="status">
+            <p className="font-medium text-primary">{success}</p>
+          </div>
+        )}
         {magicLink && (
-          <p className="rounded border border-emerald-200 bg-emerald-50 p-2 text-xs text-emerald-800">
-            <a href={magicLink} className="underline">
-              Abrir link magico
+          <div className="rounded-lg border-2 border-primary bg-primary/10 p-4" role="region" aria-label={t("login.openMagicLink")}>
+            <p className="mb-2 text-sm font-medium text-foreground">{t("login.openMagicLink")}</p>
+            <a
+              href={magicLink}
+              className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              {t("login.openMagicLink")}
             </a>
-          </p>
+          </div>
         )}
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+          className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 transition-opacity shadow-sm"
         >
-          {loading ? "Sending..." : "Send magic link"}
+          {loading ? t("login.sending") : t("login.sendMagicLink")}
         </button>
       </form>
-      <p className="mt-4 text-sm text-zinc-600">
-        <Link href="/problems" className="hover:underline">
-          Continue as guest (view only)
+      <p className="mt-4 text-sm text-muted-foreground">
+        <Link href="/problems" className="text-primary hover:underline">
+          {t("login.continueAsGuest")}
         </Link>
       </p>
     </div>

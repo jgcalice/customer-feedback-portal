@@ -1,0 +1,81 @@
+:root {
+  /* AB InBev Brand World base palette */
+  --abi-black: #000000;
+  --abi-white: #ffffff;
+  --abi-gold: #e5b611;
+  --abi-light-gold: #f5e003;
+  --abi-dark-gold: #d1a33c;
+  --abi-light-grey: #efefef;
+  --abi-dark-grey: #c7c7c7;
+  --abi-red: #921a28;
+  --abi-blue: #325a6d;
+  --abi-beige: #d69e77;
+  --abi-green: #959b7b;
+  --abi-light-red: #e88475;
+  --abi-brown: #3f1f14;
+
+  /* Primary brand gradient (dominant surface accent) */
+  --abi-gold-gradient: linear-gradient(
+    135deg,
+    var(--abi-light-gold) 0%,
+    var(--abi-gold) 46%,
+    var(--abi-dark-gold) 100%
+  );
+
+  /* Semantic tokens */
+  --background: var(--abi-white);
+  --foreground: var(--abi-black);
+  --card: var(--abi-white);
+  --card-foreground: var(--abi-black);
+  --muted: var(--abi-light-grey);
+  --muted-foreground: var(--abi-black);
+  --accent: var(--abi-light-gold);
+  --accent-foreground: var(--abi-black);
+  --border: var(--abi-dark-grey);
+  --input: var(--abi-dark-grey);
+  --popover: var(--abi-white);
+  --popover-foreground: var(--abi-black);
+  --primary: var(--abi-gold);
+  --primary-foreground: var(--abi-black);
+  --secondary: var(--abi-light-grey);
+  --secondary-foreground: var(--abi-black);
+  --destructive: var(--abi-red);
+  --destructive-foreground: var(--abi-white);
+  --ring: var(--abi-dark-gold);
+
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --font-mono: "Courier New", monospace;
+  --font-serif: Georgia, serif;
+
+  --spacing: 0.25rem;
+  --radius: 0.5rem;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 8%);
+  --shadow-md: 0 6px 14px -6px rgb(0 0 0 / 15%);
+  --shadow-lg: 0 16px 36px -14px rgb(0 0 0 / 18%);
+  --shadow-xl: 0 24px 52px -20px rgb(0 0 0 / 20%);
+  --shadow-2xl: 0 32px 60px -24px rgb(0 0 0 / 28%);
+}
+
+.dark {
+  --background: var(--abi-black);
+  --foreground: var(--abi-white);
+  --card: #111111;
+  --card-foreground: var(--abi-white);
+  --muted: #161616;
+  --muted-foreground: var(--abi-white);
+  --accent: var(--abi-dark-gold);
+  --accent-foreground: var(--abi-black);
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --popover: #111111;
+  --popover-foreground: var(--abi-white);
+  --primary: var(--abi-gold);
+  --primary-foreground: var(--abi-black);
+  --secondary: #1a1a1a;
+  --secondary-foreground: var(--abi-white);
+  --destructive: var(--abi-red);
+  --destructive-foreground: var(--abi-white);
+  --ring: var(--abi-light-gold);
+}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createMagicLinkToken } from "@/lib/auth";
+import { getI18nServer } from "@/i18n/server";
 
 function getClientIp(request: NextRequest) {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -28,7 +29,13 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-async function sendMagicLinkEmail(to: string, magicLink: string) {
+async function sendMagicLinkEmail(
+  to: string,
+  magicLink: string,
+  subject: string,
+  html: string,
+  text: string
+) {
   const resendApiKey = process.env.RESEND_API_KEY;
   const resendFrom = process.env.RESEND_FROM;
 
@@ -45,9 +52,9 @@ async function sendMagicLinkEmail(to: string, magicLink: string) {
     body: JSON.stringify({
       from: resendFrom,
       to: [to],
-      subject: "Seu link de acesso ao Customer Feedback Portal",
-      html: `<p>Use o link abaixo para entrar:</p><p><a href="${magicLink}">${magicLink}</a></p><p>Este link expira em 20 minutos.</p>`,
-      text: `Use este link para entrar no Customer Feedback Portal: ${magicLink}\n\nEste link expira em 20 minutos.`,
+      subject,
+      html,
+      text,
     }),
   });
 
@@ -60,10 +67,11 @@ async function sendMagicLinkEmail(to: string, magicLink: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const { t } = await getI18nServer();
   try {
     if (isRateLimited(getClientIp(request))) {
       return NextResponse.json(
-        { error: "Too many requests. Try again in a few minutes." },
+        { error: t("api.tooManyRequests") },
         { status: 429 }
       );
     }
@@ -73,7 +81,7 @@ export async function POST(request: NextRequest) {
 
     if (!email || !isValidEmail(email)) {
       return NextResponse.json(
-        { error: "Valid email required" },
+        { error: t("api.validEmailRequired") },
         { status: 400 }
       );
     }
@@ -97,7 +105,16 @@ export async function POST(request: NextRequest) {
     magicLinkUrl.searchParams.set("token", token);
     const magicLink = magicLinkUrl.toString();
 
-    const sentByEmail = await sendMagicLinkEmail(user.email, magicLink).catch((e) => {
+    const subject = t("api.magicLinkEmailSubject");
+    const html = t("api.magicLinkEmailHtml", { magicLink });
+    const text = t("api.magicLinkEmailText", { magicLink });
+    const sentByEmail = await sendMagicLinkEmail(
+      user.email,
+      magicLink,
+      subject,
+      html,
+      text
+    ).catch((e) => {
       console.error(e);
       return false;
     });
@@ -109,7 +126,7 @@ export async function POST(request: NextRequest) {
     const response: Record<string, unknown> = {
       ok: true,
       sentByEmail,
-      message: "Magic link generated. Check your inbox.",
+      message: t("api.magicLinkGenerated"),
     };
 
     if (process.env.NODE_ENV !== "production") {
@@ -120,7 +137,7 @@ export async function POST(request: NextRequest) {
   } catch (e) {
     console.error(e);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: t("api.internalServerError") },
       { status: 500 }
     );
   }

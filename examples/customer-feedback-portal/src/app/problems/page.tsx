@@ -5,15 +5,16 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/components/ToastProvider";
+import { useI18n } from "@/i18n/LocaleProvider";
 
 type ProblemSort = "recent" | "most_interested" | "most_commented";
 type PaginationToken = number | "left-ellipsis" | "right-ellipsis";
 
 const DEFAULT_PAGE_SIZE = 6;
-const SORT_OPTIONS: Array<{ value: ProblemSort; label: string }> = [
-  { value: "recent", label: "Most recent" },
-  { value: "most_interested", label: "Most interested" },
-  { value: "most_commented", label: "Most commented" },
+const SORT_OPTIONS: Array<{ value: ProblemSort }> = [
+  { value: "recent" },
+  { value: "most_interested" },
+  { value: "most_commented" },
 ];
 const PAGE_SIZE_OPTIONS = [6, 12, 24];
 
@@ -186,19 +187,20 @@ export default function ProblemsPage() {
   });
   const router = useRouter();
   const { addToast } = useToast();
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch("/api/products")
       .then((r) => r.json())
       .then(setProducts)
-      .catch(() => setError("Failed to load products"));
+      .catch(() => setError(t("api.internalServerError")));
 
     fetch("/api/me")
       .then((r) => r.json())
       .then((data) => setIsAuthenticated(!!data.user))
       .catch(() => setIsAuthenticated(false))
       .finally(() => setAuthResolved(true));
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     const nextProductId = searchParams.get("productId") ?? "";
@@ -241,10 +243,10 @@ export default function ProblemsPage() {
 
     Promise.all([
       fetch("/api/me/preferences/problems").then((r) =>
-        r.ok ? r.json() : Promise.reject(new Error("Failed to load preferences"))
+        r.ok ? r.json() : Promise.reject(new Error(t("api.internalServerError")))
       ),
       fetch("/api/me/workspace/views").then((r) =>
-        r.ok ? r.json() : Promise.reject(new Error("Failed to load workspace views"))
+        r.ok ? r.json() : Promise.reject(new Error(t("api.internalServerError")))
       ),
     ])
       .then(([preferencePayload, viewsPayload]) => {
@@ -272,7 +274,7 @@ export default function ProblemsPage() {
         console.error(e);
         addToast({
           tone: "error",
-          title: "Could not load workspace data",
+          title: t("toast.workspaceLoadErrorTitle"),
         });
       })
       .finally(() => {
@@ -367,7 +369,7 @@ export default function ProblemsPage() {
       .then(async (r) => {
         const data = await r.json();
         if (!r.ok) {
-          throw new Error(data.error ?? "Failed to load problems");
+          throw new Error(data.error ?? t("api.internalServerError"));
         }
         return data as ProblemsResponse;
       })
@@ -381,14 +383,14 @@ export default function ProblemsPage() {
         }
       })
       .catch((e) => {
-        const message = e instanceof Error ? e.message : "Failed to load problems";
+        const message = e instanceof Error ? e.message : t("api.internalServerError");
         setError(message);
         if (mineOnly && message.toLowerCase().includes("login")) {
           setMineOnly(false);
           addToast({
             tone: "info",
-            title: "Login required",
-            description: "Use login to filter by your own interests.",
+            title: t("toast.loginRequiredTitle"),
+            description: t("toast.loginRequiredDesc"),
           });
         }
       })
@@ -451,7 +453,7 @@ export default function ProblemsPage() {
           router.push("/login");
           return;
         }
-        throw new Error(data.error ?? "Failed");
+        throw new Error(data.error ?? t("api.internalServerError"));
       }
 
       const nextCount =
@@ -472,24 +474,20 @@ export default function ProblemsPage() {
             : item
         )
       );
-      setInfo(
-        !problem.hasInterest
-          ? "Marcado como 'me afeta'."
-          : "Marcacao removida."
-      );
+      setInfo(!problem.hasInterest ? t("toast.interestAddedDesc") : t("toast.interestRemovedDesc"));
       addToast({
         tone: "success",
-        title: !problem.hasInterest ? "Interesse registrado" : "Interesse removido",
+        title: !problem.hasInterest ? t("toast.interestAddedTitle") : t("toast.interestRemovedTitle"),
       });
       if (sort !== "recent") {
         setRefreshKey((value) => value + 1);
       }
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Something went wrong";
+      const message = e instanceof Error ? e.message : t("login.genericError");
       setError(message);
       addToast({
         tone: "error",
-        title: "Falha ao atualizar interesse",
+        title: t("toast.interestUpdateErrorTitle"),
         description: message,
       });
     } finally {
@@ -502,14 +500,14 @@ export default function ProblemsPage() {
     if (!isAuthenticated) {
       addToast({
         tone: "info",
-        title: "Login required",
-        description: "Sign in before saving workspace views.",
+        title: t("toast.loginRequiredTitle"),
+        description: t("toast.loginRequiredDesc"),
       });
       router.push("/login");
       return;
     }
 
-    const name = workspaceName.trim() || `View ${new Date().toLocaleDateString()}`;
+      const name = workspaceName.trim() || `View ${new Date().toLocaleDateString()}`;
     setWorkspaceSaving(true);
     try {
       const res = await fetch("/api/me/workspace/views", {
@@ -528,7 +526,7 @@ export default function ProblemsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error ?? "Failed to save view");
+        throw new Error(data.error ?? t("api.internalServerError"));
       }
 
       setWorkspaceViews((prev) => sortViews([data as SavedProblemView, ...prev]));
@@ -536,14 +534,14 @@ export default function ProblemsPage() {
       setWorkspaceFavorite(false);
       addToast({
         tone: "success",
-        title: "View saved",
-        description: `"${name}" is now in My Workspace.`,
+        title: t("toast.viewSavedTitle"),
+        description: t("toast.viewSavedDesc", { name }),
       });
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to save view";
+      const message = e instanceof Error ? e.message : t("api.internalServerError");
       addToast({
         tone: "error",
-        title: "Could not save view",
+        title: t("toast.saveViewErrorTitle"),
         description: message,
       });
     } finally {
@@ -561,10 +559,10 @@ export default function ProblemsPage() {
     setMineOnly(filters.mineOnly);
     setPageSize(filters.pageSize);
     setPage(1);
-    setInfo(`Applied workspace view "${view.name}".`);
+    setInfo(t("toast.viewAppliedTitle"));
     addToast({
       tone: "info",
-      title: "View applied",
+      title: t("toast.viewAppliedTitle"),
       description: view.name,
     });
   }
@@ -579,16 +577,16 @@ export default function ProblemsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error ?? "Failed to update favorite");
+        throw new Error(data.error ?? t("api.internalServerError"));
       }
       setWorkspaceViews((prev) =>
         sortViews(prev.map((item) => (item.id === view.id ? (data as SavedProblemView) : item)))
       );
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to update favorite";
+      const message = e instanceof Error ? e.message : t("api.internalServerError");
       addToast({
         tone: "error",
-        title: "Could not update favorite",
+        title: t("toast.favoriteUpdateErrorTitle"),
         description: message,
       });
     } finally {
@@ -597,7 +595,7 @@ export default function ProblemsPage() {
   }
 
   async function deleteSavedView(view: SavedProblemView) {
-    if (!window.confirm(`Delete workspace view "${view.name}"?`)) {
+    if (!window.confirm(`${t("problems.delete")} "${view.name}"?`)) {
       return;
     }
     setWorkspaceMutatingId(view.id);
@@ -607,19 +605,19 @@ export default function ProblemsPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error ?? "Failed to delete view");
+        throw new Error(data.error ?? t("api.internalServerError"));
       }
       setWorkspaceViews((prev) => prev.filter((item) => item.id !== view.id));
       addToast({
         tone: "success",
-        title: "View deleted",
+        title: t("toast.viewDeletedTitle"),
         description: view.name,
       });
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to delete view";
+      const message = e instanceof Error ? e.message : t("api.internalServerError");
       addToast({
         tone: "error",
-        title: "Could not delete view",
+        title: t("toast.deleteViewErrorTitle"),
         description: message,
       });
     } finally {
@@ -635,10 +633,10 @@ export default function ProblemsPage() {
     setPage(1);
     setSearchDraft("");
     setSearchQuery("");
-    setInfo("Filters cleared.");
+    setInfo(t("toast.filtersClearedTitle"));
     addToast({
       tone: "info",
-      title: "Filtros limpos",
+      title: t("toast.filtersClearedTitle"),
     });
   }
 
@@ -665,39 +663,39 @@ export default function ProblemsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Problems</h1>
+      <div className="mb-6 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+        <h1 className="text-2xl font-bold text-foreground">{t("problems.title")}</h1>
         <Link
           href="/problems/new"
-          className="rounded bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800"
+          className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-opacity shadow-sm"
         >
-          New Problem
+          {t("problems.newProblem")}
         </Link>
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border bg-white p-4">
-          <p className="text-xs text-zinc-500">Matching problems</p>
-          <p className="mt-1 text-2xl font-semibold">{meta.total}</p>
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+          <p className="text-xs text-muted-foreground">{t("problems.matchingProblems")}</p>
+          <p className="mt-1 text-2xl font-semibold text-card-foreground">{meta.total}</p>
         </div>
-        <div className="rounded-lg border bg-white p-4">
-          <p className="text-xs text-zinc-500">“Me afeta” in current page</p>
-          <p className="mt-1 text-2xl font-semibold">{totalInterests}</p>
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+          <p className="text-xs text-muted-foreground">{t("problems.meAffectsCurrentPage")}</p>
+          <p className="mt-1 text-2xl font-semibold text-card-foreground">{totalInterests}</p>
         </div>
-        <div className="rounded-lg border bg-white p-4">
-          <p className="text-xs text-zinc-500">My interests (current page)</p>
-          <p className="mt-1 text-2xl font-semibold">
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+          <p className="text-xs text-muted-foreground">{t("problems.myInterestsCurrentPage")}</p>
+          <p className="mt-1 text-2xl font-semibold text-card-foreground">
             {problems.filter((item) => item.hasInterest).length}
           </p>
         </div>
       </div>
 
-      <section className="mb-6 rounded-lg border bg-white p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">My Workspace</h2>
+      <section className="mb-6 rounded-lg border border-border bg-card p-4 shadow-sm">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold text-card-foreground">{t("problems.workspace")}</h2>
           {!isAuthenticated && (
-            <Link href="/login" className="text-sm text-zinc-600 underline hover:text-zinc-800">
-              Login to persist views
+            <Link href="/login" className="text-sm text-primary underline hover:no-underline">
+              {t("problems.loginToPersist")}
             </Link>
           )}
         </div>
@@ -706,53 +704,53 @@ export default function ProblemsPage() {
             type="text"
             value={workspaceName}
             onChange={(e) => setWorkspaceName(e.target.value)}
-            placeholder="View name (e.g. WMS high impact)"
-            className="min-w-[16rem] flex-1 rounded border border-zinc-300 px-3 py-2 text-sm"
+            placeholder={t("problems.workspaceNamePlaceholder")}
+            className="min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground sm:min-w-[16rem]"
             disabled={!isAuthenticated || workspaceSaving}
           />
-          <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+          <label className="inline-flex items-center gap-2 text-sm text-secondary-foreground">
             <input
               type="checkbox"
               checked={workspaceFavorite}
               onChange={(e) => setWorkspaceFavorite(e.target.checked)}
               disabled={!isAuthenticated || workspaceSaving}
             />
-            Favorite
+            {t("problems.favorite")}
           </label>
           <button
             type="submit"
             disabled={!isAuthenticated || workspaceSaving}
-            className="rounded bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 transition-opacity shadow-sm"
           >
-            {workspaceSaving ? "Saving..." : "Save current view"}
+            {workspaceSaving ? t("problems.saving") : t("problems.saveCurrentView")}
           </button>
         </form>
 
         {workspaceLoading ? (
-          <p className="text-sm text-zinc-600">Loading your saved views...</p>
+          <p className="text-sm text-muted-foreground">{t("problems.loadingViews")}</p>
         ) : workspaceViews.length === 0 ? (
-          <p className="text-sm text-zinc-600">
-            No saved views yet. Save your current filters to build your workspace.
+          <p className="text-sm text-muted-foreground">
+            {t("problems.noSavedViews")}
           </p>
         ) : (
           <ul className="space-y-2">
             {workspaceViews.map((view) => (
               <li
                 key={view.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded border bg-zinc-50 px-3 py-2"
+                className="flex flex-wrap items-start justify-between gap-2 rounded-md border border-border bg-muted px-3 py-2 sm:items-center"
               >
-                <div className="min-w-[12rem]">
-                  <p className="text-sm font-medium">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground">
                     {view.isFavorite ? "★ " : ""}
                     {view.name}
                   </p>
-                  <p className="text-xs text-zinc-600">
+                  <p className="text-xs text-muted-foreground">
                     {[
-                      view.productId ? `product:${view.productId}` : "all products",
-                      view.status ? `status:${view.status}` : "all status",
-                      view.search ? `search:${view.search}` : "no search",
+                      view.productId ? `product:${view.productId}` : t("problems.allProducts"),
+                      view.status ? `status:${view.status}` : t("problems.allStatus"),
+                      view.search ? `search:${view.search}` : t("problems.noSearch"),
                       `sort:${normalizeViewSort(view.sort)}`,
-                      view.mineOnly ? "mine only" : "all users",
+                      view.mineOnly ? t("problems.mineOnly") : t("problems.allUsers"),
                       `size:${view.pageSize}`,
                     ].join(" · ")}
                   </p>
@@ -761,25 +759,25 @@ export default function ProblemsPage() {
                   <button
                     type="button"
                     onClick={() => applySavedView(view)}
-                    className="rounded border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+                    className="rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-secondary-foreground bg-secondary hover:bg-muted transition-colors"
                   >
-                    Apply
+                    {t("problems.apply")}
                   </button>
                   <button
                     type="button"
                     disabled={workspaceMutatingId === view.id}
                     onClick={() => toggleViewFavorite(view)}
-                    className="rounded border border-zinc-300 px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50"
+                    className="rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-secondary-foreground bg-secondary hover:bg-muted disabled:opacity-50 transition-colors"
                   >
-                    {view.isFavorite ? "Unfavorite" : "Favorite"}
+                    {view.isFavorite ? t("problems.unfavorite") : t("problems.favorite")}
                   </button>
                   <button
                     type="button"
                     disabled={workspaceMutatingId === view.id}
                     onClick={() => deleteSavedView(view)}
-                    className="rounded border border-rose-300 px-2.5 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                    className="rounded-md border border-destructive/50 px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
                   >
-                    Delete
+                    {t("problems.delete")}
                   </button>
                 </div>
               </li>
@@ -788,9 +786,9 @@ export default function ProblemsPage() {
         )}
       </section>
 
-      <div className="mb-6 flex flex-wrap gap-4">
+      <div className="mb-6 grid gap-3 sm:flex sm:flex-wrap sm:gap-4">
         <label htmlFor="product-filter" className="sr-only">
-          Filter by product
+          {t("problems.filterByProduct")}
         </label>
         <select
           id="product-filter"
@@ -799,9 +797,9 @@ export default function ProblemsPage() {
             setProductId(e.target.value);
             setPage(1);
           }}
-          className="rounded border border-zinc-300 px-3 py-2"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground sm:w-auto"
         >
-          <option value="">All products</option>
+          <option value="">{t("problems.allProductsOption")}</option>
           {products.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -809,7 +807,7 @@ export default function ProblemsPage() {
           ))}
         </select>
         <label htmlFor="status-filter" className="sr-only">
-          Filter by status
+          {t("problems.filterByStatus")}
         </label>
         <select
           id="status-filter"
@@ -818,28 +816,28 @@ export default function ProblemsPage() {
             setStatus(e.target.value);
             setPage(1);
           }}
-          className="rounded border border-zinc-300 px-3 py-2"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground sm:w-auto"
         >
-          <option value="">All statuses</option>
-          <option value="new">New</option>
-          <option value="evaluating">Evaluating</option>
-          <option value="planned">Planned</option>
-          <option value="in_progress">In progress</option>
-          <option value="delivered">Delivered</option>
+          <option value="">{t("problems.allStatusOption")}</option>
+          <option value="new">{t("status.new")}</option>
+          <option value="evaluating">{t("status.evaluating")}</option>
+          <option value="planned">{t("status.planned")}</option>
+          <option value="in_progress">{t("status.in_progress")}</option>
+          <option value="delivered">{t("status.delivered")}</option>
         </select>
         <label htmlFor="search-filter" className="sr-only">
-          Search problems
+          {t("problems.searchProblems")}
         </label>
         <input
           id="search-filter"
           type="search"
-          placeholder="Search..."
+          placeholder={t("problems.searchPlaceholder")}
           value={searchDraft}
           onChange={(e) => setSearchDraft(e.target.value)}
-          className="rounded border border-zinc-300 px-3 py-2"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground sm:w-auto"
         />
         <label htmlFor="sort-filter" className="sr-only">
-          Sort problems
+          {t("problems.sortProblems")}
         </label>
         <select
           id="sort-filter"
@@ -848,15 +846,19 @@ export default function ProblemsPage() {
             setSort(e.target.value as ProblemSort);
             setPage(1);
           }}
-          className="rounded border border-zinc-300 px-3 py-2"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground sm:w-auto"
         >
           {SORT_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
-              {option.label}
+              {option.value === "recent"
+                ? t("problems.sortRecent")
+                : option.value === "most_interested"
+                  ? t("problems.sortInterested")
+                  : t("problems.sortCommented")}
             </option>
           ))}
         </select>
-        <label htmlFor="mine-filter" className="inline-flex items-center gap-2 rounded border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700">
+        <label htmlFor="mine-filter" className="inline-flex w-full items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-secondary-foreground sm:w-auto">
           <input
             id="mine-filter"
             type="checkbox"
@@ -867,18 +869,18 @@ export default function ProblemsPage() {
               setPage(1);
             }}
           />
-          Only my interests
+          {t("problems.onlyMyInterests")}
         </label>
         {!isAuthenticated && (
           <Link
             href="/login"
-            className="self-center text-sm text-zinc-600 underline hover:text-zinc-800"
+            className="self-center text-sm text-primary underline hover:no-underline"
           >
-            Login to enable
+            {t("problems.loginToEnable")}
           </Link>
         )}
         <label htmlFor="page-size-filter" className="sr-only">
-          Items per page
+          {t("problems.itemsPerPage")}
         </label>
         <select
           id="page-size-filter"
@@ -887,43 +889,43 @@ export default function ProblemsPage() {
             setPageSize(parsePageSize(e.target.value));
             setPage(1);
           }}
-          className="rounded border border-zinc-300 px-3 py-2"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground sm:w-auto"
         >
           {PAGE_SIZE_OPTIONS.map((size) => (
             <option key={size} value={size}>
-              {size} per page
+              {t("problems.perPage", { size })}
             </option>
           ))}
         </select>
         <button
           type="button"
           onClick={clearFilters}
-          className="rounded border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          className="rounded-md border border-border px-3 py-2 text-sm font-medium text-secondary-foreground bg-secondary hover:bg-muted transition-colors sm:w-auto"
         >
-          Clear filters
+          {t("problems.clearFilters")}
         </button>
         <a
           href={csvExportUrl}
-          className="rounded bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+          className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-opacity shadow-sm sm:w-auto"
         >
-          Export CSV
+          {t("problems.exportCsv")}
         </a>
       </div>
 
-      {error && <p className="mb-4 text-red-600">{error}</p>}
+      {error && <p className="mb-4 text-destructive">{error}</p>}
       {info && (
-        <p className="mb-4 text-emerald-700" aria-live="polite">
+        <p className="mb-4 text-primary" aria-live="polite">
           {info}
         </p>
       )}
 
       {loading ? (
-        <p className="text-zinc-600">Loading...</p>
+        <p className="text-muted-foreground">{t("common.loading")}</p>
       ) : problems.length === 0 ? (
-        <div className="rounded-lg border bg-white p-8 text-center text-zinc-600">
-          No problems found.{" "}
-          <Link href="/problems/new" className="font-medium hover:underline">
-            Submit one
+        <div className="rounded-lg border border-border bg-card p-8 text-center text-muted-foreground shadow-sm">
+          {t("problems.noProblemsFound")}{" "}
+          <Link href="/problems/new" className="font-medium text-primary hover:underline">
+            {t("problems.submitOne")}
           </Link>
         </div>
       ) : (
@@ -931,11 +933,11 @@ export default function ProblemsPage() {
           <ul className="space-y-4">
             {problems.map((p) => (
               <li key={p.id}>
-                <div className="rounded-lg border bg-white p-4 transition hover:border-zinc-400">
-                  <div className="flex items-start justify-between gap-3">
+                <div className="rounded-lg border border-border bg-card p-4 shadow-sm transition hover:border-primary/50">
+                  <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
                     <Link href={`/problems/${p.id}`} className="min-w-0 flex-1">
-                      <h2 className="font-semibold">{p.title}</h2>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-zinc-600">
+                      <h2 className="font-semibold text-card-foreground">{p.title}</h2>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                         <span>{p.product.name}</span>
                         <StatusBadge status={p.status} />
                       </div>
@@ -949,39 +951,39 @@ export default function ProblemsPage() {
                           ? `Remove interest for ${p.title}`
                           : `Mark ${p.title} as affecting me`
                       }
-                      className={`rounded px-3 py-1.5 text-sm font-medium ${
+                      className={`rounded-md px-3 py-1.5 text-sm font-medium ${
                         p.hasInterest
-                          ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
-                          : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-                      } disabled:opacity-50`}
+                          ? "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                          : "bg-secondary text-secondary-foreground border border-border hover:bg-muted"
+                      } disabled:opacity-50 transition-colors`}
                     >
                       {togglingId === p.id
                         ? "..."
                         : p.hasInterest
-                          ? "✓ Me afeta"
-                          : "Me afeta"}
+                          ? t("problems.meAffectsChecked")
+                          : t("problems.meAffects")}
                     </button>
                   </div>
-                  <p className="mt-3 text-sm text-zinc-500">
-                    {p._count.interests} pessoas marcadas · {p._count.comments} comentarios
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    {p._count.interests} {t("problems.peopleMarked")} · {p._count.comments} {t("problems.comments")}
                   </p>
                 </div>
               </li>
             ))}
           </ul>
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-white px-4 py-3">
-            <p className="text-sm text-zinc-600">
-              Showing {fromItem}-{toItem} of {meta.total}
+          <div className="mt-6 flex flex-col items-start justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm sm:flex-row sm:items-center">
+            <p className="text-sm text-muted-foreground">
+              {t("problems.showing", { from: fromItem, to: toItem, total: meta.total })}
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 disabled={meta.page <= 1}
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
-                className="rounded border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50"
+                className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-secondary-foreground bg-secondary hover:bg-muted disabled:opacity-50 transition-colors"
               >
-                Previous
+                {t("common.previous")}
               </button>
               {paginationTokens.map((token) =>
                 typeof token === "number" ? (
@@ -990,10 +992,10 @@ export default function ProblemsPage() {
                     type="button"
                     onClick={() => setPage(token)}
                     aria-current={token === meta.page ? "page" : undefined}
-                    className={`rounded border px-3 py-1.5 text-sm font-medium ${
+                    className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
                       token === meta.page
-                        ? "border-zinc-900 bg-zinc-900 text-white"
-                        : "border-zinc-300 text-zinc-700 hover:bg-zinc-100"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border text-secondary-foreground bg-secondary hover:bg-muted"
                     }`}
                   >
                     {token}
@@ -1001,7 +1003,7 @@ export default function ProblemsPage() {
                 ) : (
                   <span
                     key={token}
-                    className="px-1 text-sm text-zinc-500"
+                    className="px-1 text-sm text-muted-foreground"
                     aria-hidden="true"
                   >
                     ...
@@ -1014,9 +1016,9 @@ export default function ProblemsPage() {
                 onClick={() =>
                   setPage((current) => Math.min(meta.totalPages, current + 1))
                 }
-                className="rounded border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50"
+                className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-secondary-foreground bg-secondary hover:bg-muted disabled:opacity-50 transition-colors"
               >
-                Next
+                {t("common.next")}
               </button>
             </div>
           </div>

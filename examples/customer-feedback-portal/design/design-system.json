@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "brandCompliance": {
+    "palettePolicy": "Primary gold gradient + black/white dominate. Secondary colors are accent-only. Tertiary is charts-only.",
+    "textOnBackgroundRules": {
+      "goldGradient": ["black"],
+      "black": ["white", "lightGold", "darkGold"],
+      "lightGrey_darkGold_white_lightGold_darkGrey": ["black"]
+    },
+    "forbiddenWithoutPermission": [
+      "symbol-expression variants",
+      "decorative pattern overlays on dense product surfaces"
+    ]
+  },
+  "components": {
+    "button": {
+      "variants": {
+        "primary": {
+          "default": "bg-primary text-primary-foreground shadow-sm",
+          "hover": "hover:opacity-90",
+          "focus": "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "disabled": "disabled:opacity-50",
+          "class": "rounded-md px-4 py-2 text-sm font-medium transition-opacity"
+        },
+        "secondary": {
+          "default": "bg-secondary text-secondary-foreground border border-border",
+          "hover": "hover:bg-muted",
+          "focus": "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "disabled": "disabled:opacity-50",
+          "class": "rounded-md px-4 py-2 text-sm font-medium transition-colors"
+        },
+        "ghost": {
+          "default": "text-foreground",
+          "hover": "hover:bg-muted",
+          "focus": "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "class": "rounded-md px-4 py-2 text-sm font-medium transition-colors"
+        },
+        "destructive": {
+          "default": "border border-destructive/50 text-destructive",
+          "hover": "hover:bg-destructive/10",
+          "focus": "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "disabled": "disabled:opacity-50",
+          "class": "rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+        }
+      },
+      "sizes": {
+        "sm": "px-3 py-1.5 text-xs",
+        "md": "px-4 py-2 text-sm",
+        "lg": "px-5 py-2.5 text-base"
+      }
+    },
+    "input": {
+      "base": "w-full rounded-md border border-input bg-background px-3 py-2 text-foreground transition-colors",
+      "focus": "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0",
+      "placeholder": "placeholder:text-muted-foreground",
+      "disabled": "disabled:opacity-50 disabled:cursor-not-allowed",
+      "error": "border-destructive focus:ring-destructive"
+    },
+    "select": {
+      "base": "rounded-md border border-input bg-background px-3 py-2 text-foreground transition-colors",
+      "focus": "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0",
+      "disabled": "disabled:opacity-50"
+    },
+    "textarea": {
+      "base": "w-full rounded-md border border-input bg-background px-3 py-2 text-foreground transition-colors min-h-[80px]",
+      "focus": "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0",
+      "disabled": "disabled:opacity-50"
+    },
+    "card": {
+      "base": "rounded-lg border border-border bg-card text-card-foreground shadow-sm",
+      "padding": "p-4",
+      "paddingLg": "p-6"
+    },
+    "cardInteractive": {
+      "base": "rounded-lg border border-border bg-card p-4 shadow-sm transition-[box-shadow,border-color]",
+      "hover": "hover:border-primary/30"
+    },
+    "nav": {
+      "container": "border-b border-border bg-card shadow-sm px-4 py-3",
+      "logoSlot": "Top-left reserved zone; preserve clear space around approved logo; never stretch image.",
+      "tagline": "Use only approved copy as optional sign-off/beneath logo when legal-approved.",
+      "link": "font-medium text-foreground hover:text-primary transition-colors",
+      "linkActive": "text-primary",
+      "maxWidth": "max-w-5xl"
+    },
+    "toast": {
+      "container": "fixed right-4 top-4 z-50 flex w-[min(24rem,calc(100%-2rem))] flex-col gap-2",
+      "item": "rounded-lg border p-3 shadow pointer-events-auto",
+      "success": "border-border bg-card text-card-foreground",
+      "error": "border-destructive/50 bg-destructive/10 text-destructive",
+      "info": "border-border bg-muted text-muted-foreground",
+      "dismiss": "rounded px-2 py-1 text-xs font-semibold hover:bg-background/50 transition-colors"
+    },
+    "badge": {
+      "base": "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+      "variants": {
+        "default": "bg-muted text-muted-foreground border-border",
+        "primary": "bg-primary/10 text-primary border-primary/70",
+        "secondary": "bg-secondary text-secondary-foreground border-border"
+      }
+    },
+    "table": {
+      "wrapper": "overflow-x-auto",
+      "root": "w-full border-collapse",
+      "cell": "border-b border-border px-4 py-3 text-left text-sm",
+      "header": "bg-muted/50 font-medium text-muted-foreground"
+    },
+    "emptyState": {
+      "wrapper": "rounded-lg border border-border bg-card p-8 text-center shadow-sm",
+      "text": "text-sm text-muted-foreground",
+      "link": "font-medium text-primary hover:underline"
+    },
+    "errorState": {
+      "inline": "text-sm text-destructive",
+      "block": "rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+    },
+    "loadingState": {
+      "text": "text-muted-foreground",
+      "spinner": "h-5 w-5 animate-spin rounded-full border-2 border-border border-t-primary"
+    }
+  },
+  "states": {
+    "default": "Applied when no other state.",
+    "hover": "Use for links and clickable cards; transition 150ms.",
+    "focus": "Always visible focus ring (2px ring, 2px offset) for keyboard users.",
+    "activePressed": "Optional slight opacity or background darken.",
+    "disabled": "opacity-50, cursor-not-allowed for form controls.",
+    "loading": "Disabled + loading indicator or text (e.g. 'Saving...').",
+    "error": "Border or text destructive; associate with aria-invalid and aria-describedby."
+  },
+  "accessibility": {
+    "focusRing": "All interactive elements must show focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 (or equivalent).",
+    "contrast": "Text on background must meet WCAG 2.1 AA (4.5:1 normal text, 3:1 large).",
+    "automatedChecks": [
+      "bg-primary and bg-gold-gradient must pair with text-black/text-primary-foreground only",
+      "bg-black must pair with text-white, text-light-gold, or text-dark-gold",
+      "bg-light-grey/bg-dark-grey/bg-white/bg-light-gold/bg-dark-gold must pair with text-black"
+    ],
+    "keyboard": "All actions available via keyboard; tab order logical; no trap without escape.",
+    "forms": "Labels associated (for/id or aria-label); errors linked via aria-describedby; required indicated."
+  }
+}

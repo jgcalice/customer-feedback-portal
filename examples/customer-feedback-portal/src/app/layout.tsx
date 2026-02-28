@@ -1,25 +1,19 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/Nav";
 import { ToastProvider } from "@/components/ToastProvider";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
+import { getI18nServer } from "@/i18n/server";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "Customer Feedback Portal",
-  description: "Submit and track product problems",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18nServer();
+  return {
+    title: t("common.appTitle"),
+    description: t("common.appDescription"),
+  };
+}
 
 async function getUser() {
   const session = await getSession();
@@ -37,15 +31,16 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await getUser();
+  const { locale, messages } = await getI18nServer();
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-zinc-50 antialiased`}
-      >
-        <ToastProvider>
-          <Nav user={user} />
-          <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
-        </ToastProvider>
+    <html lang={locale}>
+      <body className="min-h-screen bg-background text-foreground font-sans antialiased">
+        <LocaleProvider locale={locale} messages={messages}>
+          <ToastProvider>
+            <Nav user={user} />
+            <main className="mx-auto max-w-5xl px-3 py-4 sm:px-4 sm:py-6">{children}</main>
+          </ToastProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { getI18nServer } from "@/i18n/server";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { t } = await getI18nServer();
     const session = await requireAuth();
     const { id } = await params;
     const body = await request.json();
@@ -14,14 +16,14 @@ export async function POST(
 
     if (text.length < 3) {
       return NextResponse.json(
-        { error: "Comment must have at least 3 characters" },
+        { error: t("api.commentMinLength") },
         { status: 400 }
       );
     }
 
     const problem = await prisma.problem.findUnique({ where: { id } });
     if (!problem) {
-      return NextResponse.json({ error: "Problem not found" }, { status: 404 });
+      return NextResponse.json({ error: t("api.problemNotFound") }, { status: 404 });
     }
 
     const comment = await prisma.comment.create({
@@ -44,11 +46,11 @@ export async function POST(
     return NextResponse.json(comment);
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: (await getI18nServer()).t("api.unauthorized") }, { status: 401 });
     }
     console.error(e);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: (await getI18nServer()).t("api.internalServerError") },
       { status: 500 }
     );
   }

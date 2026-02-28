@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireInternal } from "@/lib/auth";
+import { getI18nServer } from "@/i18n/server";
 
 export async function POST(request: NextRequest) {
+  const { t } = await getI18nServer();
   try {
     await requireInternal();
     const body = await request.json();
@@ -17,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     if (!productId || !title) {
       return NextResponse.json(
-        { error: "productId and title required" },
+        { error: t("api.productAndTitleRequired") },
         { status: 400 }
       );
     }
@@ -58,14 +60,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(item);
   } catch (e) {
     if (e instanceof Error && e.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("api.unauthorized") }, { status: 401 });
     }
     if (e instanceof Error && e.message === "Forbidden") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: t("api.forbidden") }, { status: 403 });
     }
     console.error(e);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: t("api.internalServerError") },
       { status: 500 }
     );
   }
